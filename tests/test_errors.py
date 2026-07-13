@@ -1,0 +1,66 @@
+"""Error-model slice: failures surface as typed, catchable library errors."""
+
+import httpx
+import pytest
+
+from libcivicclerk import (
+    APIStatusError,
+    CivicClerkClient,
+    CivicClerkError,
+    EventCategory,
+    NetworkError,
+    PayloadError,
+    UnknownTenantError,
+)
+
+
+def client_with(handler) -> CivicClerkClient:
+    return CivicClerkClient(
+        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+
+
+def test_server_error_raises_api_status_error_with_details():
+    client = client_with(lambda request: httpx.Response(500, text="boom"))
+
+    with pytest.raises(APIStatusError) as excinfo:
+        client.get_event_categories()
+
+    assert excinfo.value.status_code == 500
+    assert "EventCategories" in str(excinfo.value)
+
+
+def test_network_failure_raises_network_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    with pytest.raises(NetworkError):
+        client_with(handler).get_event_categories()
+
+
+def test_404_on_always_present_endpoint_means_unknown_tenant():
+    client = client_with(lambda request: httpx.Response(404))
+
+    with pytest.raises(UnknownTenantError) as excinfo:
+        client.get_event_categories()
+
+    assert "exampletown" in str(excinfo.value)
+
+
+def test_non_json_success_body_raises_payload_error():
+    client = client_with(lambda request: httpx.Response(200, text="<html>maintenance</html>"))
+
+    with pytest.raises(PayloadError):
+        client.get_event_categories()
+
+
+def test_missing_load_bearing_field_raises_payload_error_naming_it():
+    with pytest.raises(PayloadError) as excinfo:
+        EventCategory.from_api({"categoryDesc": "Town Council"})
+
+    assert "id" in str(excinfo.value)
+
+
+def test_all_library_errors_share_one_base():
+    for error_type in (APIStatusError, NetworkError, PayloadError, UnknownTenantError):
+        assert issubclass(error_type, CivicClerkError)

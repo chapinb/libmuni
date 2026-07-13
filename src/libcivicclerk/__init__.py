@@ -7,12 +7,24 @@ thin, typed client over the public (unauthenticated) API at
 """
 
 from libcivicclerk.client import CivicClerkClient
+from libcivicclerk.errors import (
+    APIStatusError,
+    CivicClerkError,
+    NetworkError,
+    PayloadError,
+    UnknownTenantError,
+)
 from libcivicclerk.models import EventCategory
 
 __version__ = "0.1.0"
 
 __all__ = [
+    "APIStatusError",
     "CivicClerkClient",
+    "CivicClerkError",
     "EventCategory",
+    "NetworkError",
+    "PayloadError",
+    "UnknownTenantError",
     "__version__",
 ]

@@ -13,6 +13,8 @@ promises.
 from dataclasses import dataclass, field
 from typing import Any
 
+from libcivicclerk.errors import require
+
 
 @dataclass(frozen=True)
 class EventCategory:
@@ -45,11 +47,14 @@ class EventCategory:
 
         Returns:
             The parsed category, with ``raw`` kept verbatim.
+
+        Raises:
+            PayloadError: If the load-bearing ``id`` field is absent.
         """
         parent_id = raw.get("parentId")
         is_public = raw.get("isPublic")
         return cls(
-            id=int(raw["id"]),
+            id=int(require(raw, "id", "EventCategory")),
             name=raw.get("categoryDesc"),
             sort_order=raw.get("sortOrder"),
             is_public=None if is_public is None else bool(is_public),
