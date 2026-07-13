@@ -86,6 +86,17 @@ def test_download_file_interrupted_mid_stream_leaves_no_partial_file(tmp_path):
     assert not destination.exists()  # docstring promises no partial file
 
 
+def test_failed_download_never_deletes_a_preexisting_file(tmp_path):
+    destination = tmp_path / "existing.pdf"
+    destination.write_bytes(b"precious earlier download")
+    client = stream_client(b"", status_code=404)
+
+    with pytest.raises(NotFoundError):
+        client.download_file(999999, destination)
+
+    assert destination.read_bytes() == b"precious earlier download"
+
+
 def test_download_file_raises_not_found_on_404(tmp_path):
     client = stream_client(b"", status_code=404)
     destination = tmp_path / "missing.pdf"

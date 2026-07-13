@@ -374,9 +374,11 @@ class CivicClerkClient:
             NetworkError: If the request fails at the network level.
         """
         wrote_any_bytes = False
+        opened_destination = False
         try:
             with self._http.stream("GET", url) as response:
                 self._raise_for_error(response, url, not_found_error)
+                opened_destination = True
                 with destination.open("wb") as file:
                     for chunk in response.iter_bytes():
                         if chunk:
@@ -389,9 +391,11 @@ class CivicClerkClient:
                     url=url,
                 )
         except httpx.TransportError as exc:
-            destination.unlink(missing_ok=True)
+            if opened_destination:
+                destination.unlink(missing_ok=True)
             raise NetworkError(f"request to {url} failed: {exc}") from exc
         except Exception:
-            destination.unlink(missing_ok=True)
+            if opened_destination:
+                destination.unlink(missing_ok=True)
             raise
         return destination
