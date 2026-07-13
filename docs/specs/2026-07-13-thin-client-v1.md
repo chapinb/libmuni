@@ -141,6 +141,11 @@ Developer stories (the library surface):
 - 2026-07-13: ruff and ty run as local prek hooks via `uv run` (pinned to
   the project's dev-group versions) rather than remote hook repos; prek's
   native hooks cover the generic checks.
+- 2026-07-13: The API returns an empty 404 for both unknown tenants and
+  unknown paths (verified live). Since the client only requests paths that
+  exist on every tenant, a 404 on an always-present endpoint is raised as
+  UnknownTenantError; id-parameterized lookups will get their own not-found
+  semantics when added.
 
 ## Deferred
 
@@ -174,7 +179,7 @@ Developer stories (the library surface):
   `get_event_categories()` returning typed `EventCategory` models via a pure
   parse function; fixture test proves parsing end to end. Touches
   src/libcivicclerk/client.py, models.py, parsing, tests/fixtures.
-- [ ] 3. Error model: exception hierarchy (transport/HTTP, unknown tenant,
+- [x] 3. Error model: exception hierarchy (transport/HTTP, unknown tenant,
   payload) with the two-tier load-bearing-field policy and `raw` escape
   hatch established as conventions; tenant typos fail loudly. Touches
   errors.py, client.py, models.py, tests.
