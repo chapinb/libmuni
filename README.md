@@ -1,6 +1,6 @@
 # libcivicclerk
 
-A read-only Python client for the CivicClerk public meeting-portal API.
+An unofficial read-only Python client for the CivicClerk public meeting-portal API.
 
 CivicClerk is a meeting-portal platform used by many municipalities to
 publish meeting calendars, agendas, minutes, and supporting documents. Those
