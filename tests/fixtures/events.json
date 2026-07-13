@@ -1,0 +1,121 @@
+{
+  "@odata.context": "https://exampletown.api.civicclerk.com/v1/$metadata#Events",
+  "value": [
+    {
+      "id": 501,
+      "eventName": "Town Council Regular Meeting",
+      "eventDescription": "Monthly regular session.",
+      "eventDate": "2026-08-03T19:00:00Z",
+      "startDateTime": "2026-08-03T19:00:00Z",
+      "secondaryIanaTimeZone": "",
+      "isPublished": "Published",
+      "agendaId": 7301,
+      "agendaName": "Town Council Regular Meeting Agenda",
+      "categoryId": 11,
+      "eventCategoryId": 11,
+      "categoryName": "Town Council",
+      "durationHrs": 2,
+      "durationMin": 30,
+      "externalMediaUrl": "https://exampletown-gov.zoom.us/j/1234567890",
+      "youtubeVideoId": "",
+      "mediaStreamPath": "",
+      "hasAgenda": true,
+      "hasMedia": false,
+      "isLiveEvent": false,
+      "eventLocation": {
+        "id": 501,
+        "eventId": 0,
+        "address1": "Town Hall, Room 101",
+        "address2": "1 Main Street",
+        "city": "Exampletown",
+        "state": "CT",
+        "zipCode": "06000"
+      },
+      "publishedFiles": [
+        {
+          "fileId": 9001,
+          "type": "Agenda",
+          "name": "Town Council Regular Meeting Agenda",
+          "publishOn": "2026-07-30T15:12:00Z"
+        },
+        {
+          "fileId": 9002,
+          "type": "Agenda Packet",
+          "name": "Town Council Regular Meeting Packet",
+          "publishOn": "2026-07-30T15:14:00Z"
+        }
+      ]
+    },
+    {
+      "id": 486,
+      "eventName": "Planning Board Public Hearing",
+      "eventDescription": "",
+      "eventDate": "2026-06-10T18:30:00Z",
+      "startDateTime": "2026-06-10T18:30:00Z",
+      "secondaryIanaTimeZone": "",
+      "isPublished": "Published",
+      "agendaId": 7112,
+      "agendaName": "Planning Board Public Hearing Agenda",
+      "categoryId": 12,
+      "eventCategoryId": 12,
+      "categoryName": "Planning Board",
+      "durationHrs": 0,
+      "durationMin": 0,
+      "externalMediaUrl": "",
+      "youtubeVideoId": "dQw4w9WgXcQ",
+      "mediaStreamPath": "https://media.example.com/streams/486.m3u8",
+      "hasAgenda": true,
+      "hasMedia": true,
+      "isLiveEvent": false,
+      "eventLocation": {
+        "id": 486,
+        "eventId": 0,
+        "address1": "Community Center Auditorium",
+        "address2": null,
+        "city": "Exampletown",
+        "state": "CT",
+        "zipCode": "06000"
+      },
+      "publishedFiles": [
+        {
+          "fileId": 8801,
+          "type": "Minutes",
+          "name": "Planning Board Public Hearing Minutes",
+          "publishOn": "2026-06-17T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": 512,
+      "eventName": "Parks Subcommittee",
+      "eventDescription": "",
+      "eventDate": "2026-09-01T08:00:00Z",
+      "startDateTime": "2026-09-01T08:00:00Z",
+      "secondaryIanaTimeZone": "",
+      "isPublished": "Published",
+      "agendaId": 0,
+      "agendaName": null,
+      "categoryId": 15,
+      "eventCategoryId": 15,
+      "categoryName": "Parks Subcommittee",
+      "durationHrs": 0,
+      "durationMin": 0,
+      "externalMediaUrl": "",
+      "youtubeVideoId": "",
+      "mediaStreamPath": "",
+      "hasAgenda": false,
+      "hasMedia": false,
+      "isLiveEvent": false,
+      "eventLocation": {
+        "id": 512,
+        "eventId": 0,
+        "address1": "",
+        "address2": null,
+        "city": null,
+        "state": null,
+        "zipCode": null
+      },
+      "publishedFiles": []
+    }
+  ]
+}

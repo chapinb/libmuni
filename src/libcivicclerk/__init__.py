@@ -14,7 +14,7 @@ from libcivicclerk.errors import (
     PayloadError,
     UnknownTenantError,
 )
-from libcivicclerk.models import EventCategory
+from libcivicclerk.models import Event, EventCategory, EventLocation, PublishedFile
 
 __version__ = "0.1.0"
 
@@ -22,9 +22,12 @@ __all__ = [
     "APIStatusError",
     "CivicClerkClient",
     "CivicClerkError",
+    "Event",
     "EventCategory",
+    "EventLocation",
     "NetworkError",
     "PayloadError",
+    "PublishedFile",
     "UnknownTenantError",
     "__version__",
 ]
