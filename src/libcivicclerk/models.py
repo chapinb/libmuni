@@ -11,11 +11,33 @@ promises.
 """
 
 import datetime as dt
+import functools
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
 from libcivicclerk.errors import PayloadError, require
+
+
+def _guarded_parse(from_api):
+    """Surface malformed field shapes as :class:`PayloadError`.
+
+    Wraps a ``from_api`` classmethod so a field that is present but the
+    wrong shape (a string id, a scalar where a list belongs) raises the
+    library's typed error instead of leaking ``ValueError``/``TypeError``/
+    ``AttributeError`` — keeping the promise that ``except CivicClerkError``
+    catches anything a call can raise.
+    """
+
+    @functools.wraps(from_api)
+    def parse(cls, raw):
+        try:
+            return from_api(cls, raw)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise PayloadError(f"{cls.__name__} payload is malformed: {exc}") from exc
+
+    return parse
+
 
 _SENTINEL_YEARS = (1, 1900)
 """Years the API uses as "no value" placeholders in datetime fields."""
@@ -71,6 +93,7 @@ class EventCategory:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "EventCategory":
         """Build an :class:`EventCategory` from one API response object.
 
@@ -118,6 +141,7 @@ class PublishedFile:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "PublishedFile":
         """Build a :class:`PublishedFile` from one ``publishedFiles`` entry.
 
@@ -157,6 +181,7 @@ class EventLocation:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "EventLocation | None":
         """Build an :class:`EventLocation`, or ``None`` when it is empty.
 
@@ -242,6 +267,7 @@ class Event:
         return self.media_stream_url
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "Event":
         """Build an :class:`Event` from one ``Events`` response object.
 
@@ -309,6 +335,7 @@ class AgendaAttachment:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "AgendaAttachment":
         """Build an :class:`AgendaAttachment` from one ``attachmentsList`` entry.
 
@@ -349,6 +376,7 @@ class AgendaItem:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "AgendaItem":
         """Build an :class:`AgendaItem` from one ``items``/``childItems`` entry.
 
@@ -405,6 +433,7 @@ class Agenda:
         yield from _walk(self.items)
 
     @classmethod
+    @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "Agenda":
         """Build an :class:`Agenda` from a ``GET /Meetings/{agendaId}`` response.
 
