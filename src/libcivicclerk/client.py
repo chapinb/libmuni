@@ -74,8 +74,10 @@ class CivicClerkClient:
 
         The API serves events in pages of 15; this method follows the
         continuation links and returns the complete result (one HTTP
-        request per page). For lazy consumption of large ranges, use
-        :meth:`iter_events`.
+        request per page). With no filters that is the tenant's entire
+        meeting history — potentially thousands of events and hundreds of
+        requests — so pass a date range for anything interactive. For lazy
+        consumption of large ranges, use :meth:`iter_events`.
 
         Args:
             category_id: Only events of this category (board/committee) —
