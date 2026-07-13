@@ -11,6 +11,7 @@ can inject a configured :class:`httpx.Client` to apply it.
 import datetime as dt
 import json
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -22,7 +23,7 @@ from libcivicclerk.errors import (
     PayloadError,
     UnknownTenantError,
 )
-from libcivicclerk.models import Agenda, Event, EventCategory
+from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
 
 
 class CivicClerkClient:
@@ -162,6 +163,109 @@ class CivicClerkClient:
             )
         return Agenda.from_api(payload)
 
+    def download_file(self, file_id: int, destination: Path) -> Path:
+        """Download a meeting-level file to ``destination``.
+
+        Streams the response in chunks, so large files never load fully
+        into memory. There is no existence-check endpoint (``HEAD`` answers
+        405) and ``Range`` headers are ignored, so downloads cannot be
+        resumed — a failed download must be retried from the start.
+
+        Args:
+            file_id: A :attr:`PublishedFile.file_id` from
+                :attr:`Event.published_files`. This id lives in a different
+                namespace than :attr:`AgendaAttachment.attachment_id` —
+                never pass an attachment id here; download attachments with
+                :meth:`download_attachment` instead.
+            destination: Local path to write the file to. Left untouched
+                (no partial file) if the download fails.
+
+        Returns:
+            ``destination``, for chaining.
+
+        Raises:
+            NotFoundError: If ``file_id`` does not exist. The API answers
+                unknown ids with HTTP 200 and a 0-byte body rather than a
+                404, so an empty body is treated as "not found" too.
+            APIStatusError: If the API responds with another error status.
+            NetworkError: If the request fails at the network level.
+        """
+        url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=false)"
+        return self._stream_to_file(url, destination, not_found_error=NotFoundError)
+
+    def download_attachment(self, attachment: AgendaAttachment, destination: Path) -> Path:
+        """Download an agenda attachment to ``destination`` via its signed URL.
+
+        Streams the response in chunks from ``attachment.download_url`` — a
+        signed, time-limited blob URL on a different host than the tenant
+        API, requested with the same injected HTTP client. Signed URLs
+        expire; a request against an expired one surfaces as
+        :class:`APIStatusError`, not a distinct error type.
+
+        Args:
+            attachment: The attachment to download; must have a
+                ``download_url``.
+            destination: Local path to write the file to. Left untouched
+                (no partial file) if the download fails.
+
+        Returns:
+            ``destination``, for chaining.
+
+        Raises:
+            ValueError: If ``attachment.download_url`` is ``None`` — check
+                it (and ``attachment.is_link``) before calling; link
+                attachments and unpublished files have no file to download.
+            NotFoundError: If the response body is empty, which the API
+                also uses to mean "unavailable".
+            APIStatusError: If the API responds with an error status
+                (including an expired signed URL).
+            NetworkError: If the request fails at the network level.
+        """
+        if attachment.download_url is None:
+            raise ValueError(
+                f"attachment {attachment.attachment_id} has no download_url; "
+                "check attachment.download_url is not None (and attachment.is_link "
+                "is False) before calling download_attachment"
+            )
+        return self._stream_to_file(attachment.download_url, destination)
+
+    def get_file_text(self, file_id: int) -> str | None:
+        """Fetch the API's best-effort plain-text extraction of a file.
+
+        This is a best-effort upstream feature, not a guarantee: the API
+        returns clean extracted text for some files, and an empty 200
+        response for others — including files that do have a text layer,
+        and invalid ids — without distinguishing why. ``None`` means the
+        API did not provide text; it does not mean the file lacks one.
+
+        Args:
+            file_id: A :attr:`PublishedFile.file_id`, as in
+                :meth:`download_file`.
+
+        Returns:
+            The extracted text, or ``None`` if the API returned no text.
+
+        Raises:
+            NotFoundError: If ``file_id`` does not exist (a plain 404).
+            APIStatusError: If the API responds with another error status.
+            NetworkError: If the request fails at the network level.
+        """
+        url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=true)"
+        try:
+            response = self._http.get(url)
+        except httpx.TransportError as exc:
+            raise NetworkError(f"request to {url} failed: {exc}") from exc
+
+        if response.status_code == 404:
+            raise NotFoundError(f"got 404 for {url}", status_code=404, url=url)
+        if response.is_error:
+            raise APIStatusError(
+                f"API returned {response.status_code} for {url}",
+                status_code=response.status_code,
+                url=url,
+            )
+        return response.text or None
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._http.close()
@@ -231,3 +335,60 @@ class CivicClerkClient:
             return response.json()
         except json.JSONDecodeError as exc:
             raise PayloadError(f"response from {url} is not valid JSON") from exc
+
+    def _stream_to_file(
+        self,
+        url: str,
+        destination: Path,
+        *,
+        not_found_error: type[APIStatusError] | None = None,
+    ) -> Path:
+        """Stream a GET response body to ``destination`` in chunks.
+
+        Shared by :meth:`download_file` and :meth:`download_attachment`.
+        Guards against the API's "empty 200 means unavailable" behavior: no
+        file is left at ``destination`` unless the response body is
+        non-empty.
+
+        Args:
+            url: Absolute URL to GET.
+            destination: Local path to write the response body to.
+            not_found_error: If given, a 404 response raises this error
+                type instead of the generic :class:`APIStatusError`.
+
+        Returns:
+            ``destination``.
+
+        Raises:
+            NotFoundError: If ``not_found_error`` is given and the response
+                is a 404, or if the response body is empty.
+            APIStatusError: If the response is another error status.
+            NetworkError: If the request fails at the network level.
+        """
+        try:
+            with self._http.stream("GET", url) as response:
+                if not_found_error is not None and response.status_code == 404:
+                    raise not_found_error(f"got 404 for {url}", status_code=404, url=url)
+                if response.is_error:
+                    raise APIStatusError(
+                        f"API returned {response.status_code} for {url}",
+                        status_code=response.status_code,
+                        url=url,
+                    )
+                wrote_any_bytes = False
+                with destination.open("wb") as file:
+                    for chunk in response.iter_bytes():
+                        if chunk:
+                            wrote_any_bytes = True
+                            file.write(chunk)
+        except httpx.TransportError as exc:
+            raise NetworkError(f"request to {url} failed: {exc}") from exc
+
+        if not wrote_any_bytes:
+            destination.unlink(missing_ok=True)
+            raise NotFoundError(
+                f"file at {url} is unavailable (empty response body)",
+                status_code=200,
+                url=url,
+            )
+        return destination
