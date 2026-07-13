@@ -252,9 +252,10 @@ Developer stories (the library surface):
   `GetMeetingFileStream`; expose text retrieval if usable, else record the
   finding and drop the story. Touches client.py, tests. (Exposed as
   best-effort `get_file_text` returning `str | None`.)
-- [ ] 10. Live contract suite: opt-in `live`-marked tests covering each
+- [x] 10. Live contract suite: opt-in `live`-marked tests covering each
   endpoint against a real tenant, excluded by default, documented for
-  scheduled CI use. Touches tests/, pyproject.toml, README.
-- [ ] 11. Release readiness: README quickstart, semver stance, disclaimer
+  scheduled CI use. Touches tests/, pyproject.toml, README. (Tenant comes
+  from CIVICCLERK_TEST_TENANT so no municipality is named in the repo.)
+- [x] 11. Release readiness: README quickstart, semver stance, disclaimer
   text finalized; PyPI metadata; version 0.1.0; wheel/sdist build verified.
   Touches README.md, pyproject.toml.
