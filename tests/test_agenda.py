@@ -3,21 +3,11 @@ typed tree, and unknown agenda ids are distinguished from unknown tenants.
 """
 
 import httpx
-from conftest import load_fixture
+import pytest
+from conftest import load_fixture, mock_client, recording_client
 
 from libcivicclerk import Agenda, CivicClerkClient, NotFoundError
-
-
-def recording_client(payload: dict, seen_requests: list[httpx.Request]) -> CivicClerkClient:
-    """Client whose transport records every request and serves ``payload``."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen_requests.append(request)
-        return httpx.Response(200, json=payload)
-
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
+from libcivicclerk.models import AgendaItem
 
 
 def status_client(status_code: int, payload: dict | None = None) -> CivicClerkClient:
@@ -26,9 +16,7 @@ def status_client(status_code: int, payload: dict | None = None) -> CivicClerkCl
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(status_code, json=payload if payload is not None else {})
 
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
+    return mock_client(handler)
 
 
 # --- acceptance: browsing the structured agenda tree ---
@@ -113,13 +101,8 @@ def test_walk_items_is_depth_first_in_sort_order():
 
 
 def test_get_agenda_raises_not_found_on_404():
-    client = status_client(404)
-
-    try:
-        client.get_agenda(999999999)
-        raise AssertionError("expected NotFoundError")
-    except NotFoundError:
-        pass
+    with pytest.raises(NotFoundError):
+        status_client(404).get_agenda(999999999)
 
 
 def test_get_agenda_raises_not_found_when_api_answers_empty_agenda():
@@ -127,19 +110,14 @@ def test_get_agenda_raises_not_found_when_api_answers_empty_agenda():
     # empty/default payload (id 0, no items) rather than a 404.
     client = status_client(200, {"id": 0, "items": [], "publishedFiles": []})
 
-    try:
+    with pytest.raises(NotFoundError):
         client.get_agenda(999999999)
-        raise AssertionError("expected NotFoundError")
-    except NotFoundError:
-        pass
 
 
 # --- lenient parsing and raw preservation ---
 
 
 def test_agenda_item_tolerates_minimal_payload():
-    from libcivicclerk.models import AgendaItem
-
     item = AgendaItem.from_api({"id": 1})
 
     assert item.item_id == 1

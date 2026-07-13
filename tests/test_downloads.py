@@ -9,6 +9,7 @@ code alone.
 
 import httpx
 import pytest
+from conftest import mock_client
 
 from libcivicclerk import AgendaAttachment, CivicClerkClient, NetworkError, NotFoundError
 
@@ -21,21 +22,17 @@ def stream_client(
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(status_code, content=body, headers={"content-type": content_type})
 
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
+    return mock_client(handler)
 
 
-def recording_client(body: bytes, seen_requests: list[httpx.Request]) -> CivicClerkClient:
+def recording_bytes_client(body: bytes, seen_requests: list[httpx.Request]) -> CivicClerkClient:
     """Client whose transport records every request and serves ``body``."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen_requests.append(request)
         return httpx.Response(200, content=body, headers={"content-type": "application/pdf"})
 
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
+    return mock_client(handler)
 
 
 # --- download_file: meeting-level files by PublishedFile.file_id ---
@@ -53,7 +50,7 @@ def test_download_file_writes_bytes_and_returns_destination(tmp_path):
 
 def test_download_file_requests_meeting_file_stream_endpoint(tmp_path):
     seen: list[httpx.Request] = []
-    recording_client(b"data", seen).download_file(42, tmp_path / "f.pdf")
+    recording_bytes_client(b"data", seen).download_file(42, tmp_path / "f.pdf")
 
     assert str(seen[0].url) == (
         "https://exampletown.api.civicclerk.com/v1/Meetings/"
@@ -80,9 +77,7 @@ def test_download_file_interrupted_mid_stream_leaves_no_partial_file(tmp_path):
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, stream=DropsMidStream())
 
-    client = CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
+    client = mock_client(handler)
     destination = tmp_path / "interrupted.pdf"
 
     with pytest.raises(NetworkError):
@@ -153,7 +148,7 @@ def test_get_file_text_returns_decoded_text():
 
 def test_get_file_text_requests_plain_text_variant():
     seen: list[httpx.Request] = []
-    recording_client(b"text", seen).get_file_text(42)
+    recording_bytes_client(b"text", seen).get_file_text(42)
 
     assert str(seen[0].url) == (
         "https://exampletown.api.civicclerk.com/v1/Meetings/"

@@ -3,22 +3,9 @@
 import datetime as dt
 
 import httpx
-from conftest import load_fixture
+from conftest import load_fixture, mock_client, recording_client
 
-from libcivicclerk import CivicClerkClient, Event
-
-
-def recording_client(payload: dict, seen_requests: list[httpx.Request]) -> CivicClerkClient:
-    """Client whose transport records every request and serves ``payload``."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen_requests.append(request)
-        return httpx.Response(200, json=payload)
-
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
-
+from libcivicclerk import Event
 
 # --- acceptance: the calendar story ---
 
@@ -131,8 +118,8 @@ def test_get_events_filters_by_date_range():
 # --- pagination: server pages are followed transparently ---
 
 
-def paged_transport(pages: list[dict], seen: list[str]) -> httpx.MockTransport:
-    """Serve ``pages`` in order, wiring each page's nextLink to the next."""
+def paged_client(pages: list[dict], seen: list[str]):
+    """Client serving ``pages`` in order, each page's nextLink wired to the next."""
     base = "https://exampletown.api.civicclerk.com/v1/Events"
     for index, page in enumerate(pages[:-1]):
         page["@odata.nextLink"] = f"{base}?$skiptoken=page-{index + 1}"
@@ -143,7 +130,7 @@ def paged_transport(pages: list[dict], seen: list[str]) -> httpx.MockTransport:
         page_index = int(token.removeprefix("page-")) if token else 0
         return httpx.Response(200, json=pages[page_index])
 
-    return httpx.MockTransport(handler)
+    return mock_client(handler)
 
 
 def event_stub(event_id: int) -> dict:
@@ -157,9 +144,7 @@ def test_get_events_follows_next_links_to_completion():
         {"value": [event_stub(4)]},
     ]
     seen: list[str] = []
-    client = CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=paged_transport(pages, seen))
-    )
+    client = paged_client(pages, seen)
 
     events = client.get_events()
 
@@ -174,9 +159,7 @@ def test_iter_events_is_lazy_across_pages():
         {"value": [event_stub(3)]},
     ]
     seen: list[str] = []
-    client = CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=paged_transport(pages, seen))
-    )
+    client = paged_client(pages, seen)
 
     iterator = client.iter_events()
     first = next(iterator)

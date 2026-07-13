@@ -2,10 +2,10 @@
 
 import httpx
 import pytest
+from conftest import mock_client
 
 from libcivicclerk import (
     APIStatusError,
-    CivicClerkClient,
     CivicClerkError,
     EventCategory,
     NetworkError,
@@ -14,14 +14,8 @@ from libcivicclerk import (
 )
 
 
-def client_with(handler) -> CivicClerkClient:
-    return CivicClerkClient(
-        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
-    )
-
-
 def test_server_error_raises_api_status_error_with_details():
-    client = client_with(lambda request: httpx.Response(500, text="boom"))
+    client = mock_client(lambda request: httpx.Response(500, text="boom"))
 
     with pytest.raises(APIStatusError) as excinfo:
         client.get_event_categories()
@@ -35,11 +29,11 @@ def test_network_failure_raises_network_error():
         raise httpx.ConnectError("connection refused")
 
     with pytest.raises(NetworkError):
-        client_with(handler).get_event_categories()
+        mock_client(handler).get_event_categories()
 
 
 def test_404_on_always_present_endpoint_means_unknown_tenant():
-    client = client_with(lambda request: httpx.Response(404))
+    client = mock_client(lambda request: httpx.Response(404))
 
     with pytest.raises(UnknownTenantError) as excinfo:
         client.get_event_categories()
@@ -48,7 +42,7 @@ def test_404_on_always_present_endpoint_means_unknown_tenant():
 
 
 def test_non_json_success_body_raises_payload_error():
-    client = client_with(lambda request: httpx.Response(200, text="<html>maintenance</html>"))
+    client = mock_client(lambda request: httpx.Response(200, text="<html>maintenance</html>"))
 
     with pytest.raises(PayloadError):
         client.get_event_categories()
