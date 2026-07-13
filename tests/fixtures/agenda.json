@@ -1,0 +1,84 @@
+{
+  "id": 7301,
+  "items": [
+    {
+      "id": 1,
+      "agendaObjectItemName": "CALL TO ORDER",
+      "sortOrder": 1,
+      "isSection": 1,
+      "childItems": [],
+      "attachmentsList": []
+    },
+    {
+      "id": 2,
+      "agendaObjectItemName": "APPROVAL OF MINUTES",
+      "sortOrder": 2,
+      "isSection": 1,
+      "childItems": [
+        {
+          "id": 3,
+          "agendaObjectItemName": "Approval of minutes: June 2026 Regular Meeting",
+          "sortOrder": 3,
+          "isSection": 0,
+          "childItems": [],
+          "attachmentsList": [
+            {
+              "id": 101,
+              "fileName": "June 2026 Minutes",
+              "isLink": false,
+              "pdfVersionFullPath": "https://exampletown.blob.core.windows.net/stream/exampletown/minutes-june-2026.pdf?sig=abc123"
+            }
+          ]
+        }
+      ],
+      "attachmentsList": []
+    },
+    {
+      "id": 4,
+      "agendaObjectItemName": "NEW BUSINESS",
+      "sortOrder": 4,
+      "isSection": 1,
+      "childItems": [
+        {
+          "id": 5,
+          "agendaObjectItemName": "Resolution 2026-14 sidewalk repair",
+          "sortOrder": 5,
+          "isSection": 0,
+          "childItems": [],
+          "attachmentsList": [
+            {
+              "id": 102,
+              "fileName": "Resolution 2026-14 Text",
+              "isLink": false,
+              "pdfVersionFullPath": "https://exampletown.blob.core.windows.net/stream/exampletown/resolution-2026-14.pdf?sig=def456"
+            },
+            {
+              "id": 103,
+              "fileName": "Related news article",
+              "isLink": true,
+              "pdfVersionFullPath": ""
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "agendaObjectItemName": "Discussion: parking study",
+          "sortOrder": 6,
+          "isSection": 0,
+          "childItems": [],
+          "attachmentsList": []
+        }
+      ],
+      "attachmentsList": []
+    },
+    {
+      "id": 7,
+      "agendaObjectItemName": "ADJOURNMENT",
+      "sortOrder": 7,
+      "isSection": 1,
+      "childItems": [],
+      "attachmentsList": []
+    }
+  ],
+  "publishedFiles": []
+}

@@ -18,10 +18,11 @@ import httpx
 from libcivicclerk.errors import (
     APIStatusError,
     NetworkError,
+    NotFoundError,
     PayloadError,
     UnknownTenantError,
 )
-from libcivicclerk.models import Event, EventCategory
+from libcivicclerk.models import Agenda, Event, EventCategory
 
 
 class CivicClerkClient:
@@ -132,6 +133,35 @@ class CivicClerkClient:
                 return
             payload = self._get_json_url(next_link)
 
+    def get_agenda(self, agenda_id: int) -> Agenda:
+        """Fetch the structured agenda (sections, items, attachments) for a meeting.
+
+        Args:
+            agenda_id: The agenda's id — see :attr:`Event.agenda_id`, which
+                is ``None`` when an event has no published agenda yet.
+
+        Returns:
+            The agenda's full item tree; use :meth:`Agenda.walk_items` to
+            flatten it.
+
+        Raises:
+            NotFoundError: If ``agenda_id`` does not exist. The API is
+                inconsistent about how it signals this — sometimes a plain
+                404, sometimes a 200 with an empty/default payload — both
+                are normalized to this error.
+            APIStatusError: If the API responds with another error status.
+            NetworkError: If the request fails at the network level.
+            PayloadError: If the response body is not usable.
+        """
+        payload = self._get_json(f"/Meetings/{agenda_id}", not_found_error=NotFoundError)
+        if not payload.get("id"):
+            raise NotFoundError(
+                f"no agenda with id {agenda_id} for tenant {self.tenant!r}",
+                status_code=200,
+                url=f"{self.base_url}/Meetings/{agenda_id}",
+            )
+        return Agenda.from_api(payload)
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._http.close()
@@ -142,16 +172,41 @@ class CivicClerkClient:
     def __exit__(self, *exc_info: object) -> None:
         self.close()
 
-    def _get_json(self, path: str, *, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Perform one GET against the tenant API and return the JSON body."""
-        return self._get_json_url(f"{self.base_url}{path}", params=params)
+    def _get_json(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        not_found_error: type[APIStatusError] = UnknownTenantError,
+    ) -> dict[str, Any]:
+        """Perform one GET against the tenant API and return the JSON body.
 
-    def _get_json_url(self, url: str, *, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        Args:
+            path: Path under the tenant's base URL.
+            params: Optional query parameters.
+            not_found_error: Error type to raise on a 404 response — see
+                :meth:`_get_json_url`.
+        """
+        return self._get_json_url(
+            f"{self.base_url}{path}", params=params, not_found_error=not_found_error
+        )
+
+    def _get_json_url(
+        self,
+        url: str,
+        *,
+        params: dict[str, Any] | None = None,
+        not_found_error: type[APIStatusError] = UnknownTenantError,
+    ) -> dict[str, Any]:
         """GET an absolute URL (e.g. a continuation link) as JSON.
 
-        Raises the library's typed errors; a 404 is reported as
-        :class:`UnknownTenantError` because every path this client requests
-        exists on every real tenant (see that error's docstring).
+        Raises the library's typed errors. ``not_found_error`` controls how
+        a 404 is interpreted: it defaults to :class:`UnknownTenantError`
+        because most paths this client requests exist on every real tenant,
+        so a 404 there means the tenant itself is missing. Callers making
+        id-parameterized lookups (e.g. an agenda id that may simply not
+        exist) pass a different error type — see
+        :meth:`CivicClerkClient.get_agenda`.
         """
         try:
             response = self._http.get(url, params=params)
@@ -159,11 +214,13 @@ class CivicClerkClient:
             raise NetworkError(f"request to {url} failed: {exc}") from exc
 
         if response.status_code == 404:
-            raise UnknownTenantError(
-                f"got 404 for {url}; tenant {self.tenant!r} likely does not exist",
-                status_code=404,
-                url=url,
-            )
+            if issubclass(not_found_error, UnknownTenantError):
+                raise not_found_error(
+                    f"got 404 for {url}; tenant {self.tenant!r} likely does not exist",
+                    status_code=404,
+                    url=url,
+                )
+            raise not_found_error(f"got 404 for {url}", status_code=404, url=url)
         if response.is_error:
             raise APIStatusError(
                 f"API returned {response.status_code} for {url}",
