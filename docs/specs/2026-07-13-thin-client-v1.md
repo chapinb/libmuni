@@ -170,7 +170,7 @@ Developer stories (the library surface):
   GitHub Actions CI (hooks, types, tests on 3.11–3.13, build); importable
   empty package; suite green locally. Touches pyproject.toml, .github/,
   .pre-commit-config.yaml, src/libcivicclerk/, tests/.
-- [ ] 2. Tracer bullet: client construction for a tenant +
+- [x] 2. Tracer bullet: client construction for a tenant +
   `get_event_categories()` returning typed `EventCategory` models via a pure
   parse function; fixture test proves parsing end to end. Touches
   src/libcivicclerk/client.py, models.py, parsing, tests/fixtures.
