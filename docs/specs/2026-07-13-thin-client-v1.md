@@ -167,6 +167,28 @@ Developer stories (the library surface):
   join link), `youtubeVideoId`/`mediaStreamPath` (recordings, exposed with
   a `recording_url` convenience), `durationHrs`/`durationMin` (mapped to a
   single optional timedelta; 0h0m means unset).
+- 2026-07-13: Spike confirmations (two tenants, different US timezones):
+  the Events schema is identical cross-tenant; the local-time-with-fake-Z
+  verdict is confirmed by a DST test (same wall-clock hour across the
+  boundary) while `createdOn`/`publishStart` look like genuine UTC; no
+  field reliably declares the tenant's timezone, so naive datetimes stand.
+  `hasMedia` means "has published documents," not video; recording fields
+  (`youtubeVideoId`, `mediaStreamPath`, `streamUrl`) are schema slots not
+  populated on observed tenants — modeled as best-effort optionals.
+- 2026-07-13: `$select` is unsupported (HTTP 500) — never use it. `$top`
+  cannot raise the 15-item page cap (it bounds the aggregate across the
+  cursor chain); `$count=true` works and persists through nextLinks.
+  Malformed OData queries return 400 with an error envelope whose
+  `error.message` names the offending field — worth surfacing in
+  APIStatusError messages (innererror/stacktrace must not be exposed).
+- 2026-07-13: `plainText=true` on GetMeetingFileStream returns clean UTF-8
+  text (text/plain) for some files but an empty 200 for others that
+  demonstrably have text layers; an invalid fileId ALSO returns an empty
+  200 (application/pdf, 0 bytes) — so empty means "unavailable", never
+  "not found". HEAD is 405 and Range headers are ignored. Decision:
+  `get_file_text(file_id)` returns `str | None` (None on empty body),
+  documented as best-effort; downloads must not use this endpoint for
+  existence checks.
 
 ## Deferred
 
@@ -208,10 +230,11 @@ Developer stories (the library surface):
   returning typed `Event` models with timezone-aware datetimes and
   `published_files`; fixture tests cover filter combinations, empty results,
   and datetime edge cases. Touches client.py, models.py, tests.
-- [ ] 5. Attendance-field spike→slice: capture real Events payloads, identify
+- [x] 5. Attendance-field spike→slice: capture real Events payloads, identify
   location / virtual-join / recording fields, model what exists on `Event`
   (absent → None); record findings in this spec's decision log. Touches
-  models.py, fixtures, tests.
+  models.py, fixtures, tests. (Modeled in slice 4; spike confirmed the
+  schema is identical on a second tenant.)
 - [x] 6. Pagination spike→slice: determine OData paging behavior on large
   Events result sets and make `get_events` return complete results (or
   expose paging explicitly); record findings. Touches client.py, tests.
