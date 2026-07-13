@@ -245,12 +245,13 @@ Developer stories (the library surface):
   tests. (Live finding: nonexistent agenda ids usually answer 200 with an
   id-0 empty payload, 404 only for malformed ids — both raise
   NotFoundError.)
-- [ ] 8. Downloads: durable URL resolution and byte streaming for meeting
+- [x] 8. Downloads: durable URL resolution and byte streaming for meeting
   files and agenda attachments, preferring `pdfVersionFullPath` and guarding
   the attachment-id collision. Touches client.py, models.py, tests.
-- [ ] 9. Plain-text spike→slice: verify what `plainText=true` returns from
+- [x] 9. Plain-text spike→slice: verify what `plainText=true` returns from
   `GetMeetingFileStream`; expose text retrieval if usable, else record the
-  finding and drop the story. Touches client.py, tests.
+  finding and drop the story. Touches client.py, tests. (Exposed as
+  best-effort `get_file_text` returning `str | None`.)
 - [ ] 10. Live contract suite: opt-in `live`-marked tests covering each
   endpoint against a real tenant, excluded by default, documented for
   scheduled CI use. Touches tests/, pyproject.toml, README.
