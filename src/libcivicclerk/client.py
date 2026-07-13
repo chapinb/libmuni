@@ -251,19 +251,7 @@ class CivicClerkClient:
             NetworkError: If the request fails at the network level.
         """
         url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=true)"
-        try:
-            response = self._http.get(url)
-        except httpx.TransportError as exc:
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
-
-        if response.status_code == 404:
-            raise NotFoundError(f"got 404 for {url}", status_code=404, url=url)
-        if response.is_error:
-            raise APIStatusError(
-                f"API returned {response.status_code} for {url}",
-                status_code=response.status_code,
-                url=url,
-            )
+        response = self._get(url, not_found_error=NotFoundError)
         return response.text or None
 
     def close(self) -> None:
@@ -304,78 +292,91 @@ class CivicClerkClient:
     ) -> dict[str, Any]:
         """GET an absolute URL (e.g. a continuation link) as JSON.
 
-        Raises the library's typed errors. ``not_found_error`` controls how
-        a 404 is interpreted: it defaults to :class:`UnknownTenantError`
-        because most paths this client requests exist on every real tenant,
-        so a 404 there means the tenant itself is missing. Callers making
-        id-parameterized lookups (e.g. an agenda id that may simply not
-        exist) pass a different error type — see
-        :meth:`CivicClerkClient.get_agenda`.
+        Raises the library's typed errors — see :meth:`_raise_for_error`.
         """
+        response = self._get(url, params=params, not_found_error=not_found_error)
+        try:
+            return response.json()
+        except json.JSONDecodeError as exc:
+            raise PayloadError(f"response from {url} is not valid JSON") from exc
+
+    def _get(
+        self,
+        url: str,
+        *,
+        params: dict[str, Any] | None = None,
+        not_found_error: type[APIStatusError],
+    ) -> httpx.Response:
+        """GET ``url``, translating failures into this library's errors."""
         try:
             response = self._http.get(url, params=params)
         except httpx.TransportError as exc:
             raise NetworkError(f"request to {url} failed: {exc}") from exc
+        self._raise_for_error(response, url, not_found_error)
+        return response
 
+    def _raise_for_error(
+        self,
+        response: httpx.Response,
+        url: str,
+        not_found_error: type[APIStatusError],
+    ) -> None:
+        """Translate an error response into this library's typed errors.
+
+        The single place that encodes how the API signals failure.
+        ``not_found_error`` controls how a 404 is interpreted: most paths
+        this client requests exist on every real tenant, so a 404 there
+        means the tenant itself is missing (:class:`UnknownTenantError`);
+        id-parameterized lookups pass :class:`NotFoundError` instead, and
+        requests to non-tenant hosts (signed blob URLs) pass plain
+        :class:`APIStatusError`.
+        """
         if response.status_code == 404:
+            message = f"got 404 for {url}"
             if issubclass(not_found_error, UnknownTenantError):
-                raise not_found_error(
-                    f"got 404 for {url}; tenant {self.tenant!r} likely does not exist",
-                    status_code=404,
-                    url=url,
-                )
-            raise not_found_error(f"got 404 for {url}", status_code=404, url=url)
+                message += f"; tenant {self.tenant!r} likely does not exist"
+            raise not_found_error(message, status_code=404, url=url)
         if response.is_error:
             raise APIStatusError(
                 f"API returned {response.status_code} for {url}",
                 status_code=response.status_code,
                 url=url,
             )
-        try:
-            return response.json()
-        except json.JSONDecodeError as exc:
-            raise PayloadError(f"response from {url} is not valid JSON") from exc
 
     def _stream_to_file(
         self,
         url: str,
         destination: Path,
         *,
-        not_found_error: type[APIStatusError] | None = None,
+        not_found_error: type[APIStatusError] = APIStatusError,
     ) -> Path:
         """Stream a GET response body to ``destination`` in chunks.
 
         Shared by :meth:`download_file` and :meth:`download_attachment`.
         Guards against the API's "empty 200 means unavailable" behavior: no
-        file is left at ``destination`` unless the response body is
-        non-empty.
+        file is left at ``destination`` unless the download completed with
+        a non-empty body.
 
         Args:
             url: Absolute URL to GET.
             destination: Local path to write the response body to.
-            not_found_error: If given, a 404 response raises this error
-                type instead of the generic :class:`APIStatusError`.
+            not_found_error: How to interpret a 404 — see
+                :meth:`_raise_for_error`.
 
         Returns:
             ``destination``.
 
         Raises:
-            NotFoundError: If ``not_found_error`` is given and the response
-                is a 404, or if the response body is empty.
+            NotFoundError: If the response body is empty (the API's way of
+                saying a file is unavailable), or on a 404 when
+                ``not_found_error`` says so.
             APIStatusError: If the response is another error status.
             NetworkError: If the request fails at the network level.
         """
         wrote_any_bytes = False
         try:
             with self._http.stream("GET", url) as response:
-                if not_found_error is not None and response.status_code == 404:
-                    raise not_found_error(f"got 404 for {url}", status_code=404, url=url)
-                if response.is_error:
-                    raise APIStatusError(
-                        f"API returned {response.status_code} for {url}",
-                        status_code=response.status_code,
-                        url=url,
-                    )
+                self._raise_for_error(response, url, not_found_error)
                 with destination.open("wb") as file:
                     for chunk in response.iter_bytes():
                         if chunk:
