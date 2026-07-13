@@ -48,6 +48,19 @@ class UnknownTenantError(APIStatusError):
     """
 
 
+class NotFoundError(APIStatusError):
+    """The id-parameterized resource does not exist for this tenant.
+
+    Raised by id-parameterized lookups (such as :meth:`CivicClerkClient.
+    get_agenda`) when the requested id has no data — unlike
+    :class:`UnknownTenantError`, this says nothing about whether the tenant
+    itself exists. The API is inconsistent about how it signals this: some
+    invalid ids answer with a plain 404, while others answer 200 with an
+    empty/default payload (``id`` reset to ``0``, no items) — both are
+    surfaced as this error.
+    """
+
+
 class PayloadError(CivicClerkError):
     """The API responded successfully but the body was not usable.
 

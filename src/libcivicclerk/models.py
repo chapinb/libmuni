@@ -11,6 +11,7 @@ promises.
 """
 
 import datetime as dt
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -274,5 +275,146 @@ class Event:
             published_files=[
                 PublishedFile.from_api(entry) for entry in (raw.get("publishedFiles") or [])
             ],
+            raw=raw,
+        )
+
+
+def _sort_order_key(item: "AgendaItem") -> int:
+    """Sort key placing items with no ``sortOrder`` first, stably."""
+    return item.sort_order if item.sort_order is not None else 0
+
+
+@dataclass(frozen=True)
+class AgendaAttachment:
+    """One document attached to a structured agenda item.
+
+    Attributes:
+        attachment_id: Stable numeric id of the attachment. Note this id is
+            reused in a different namespace by the file-download endpoint,
+            so it must never be used to synthesize a download URL — use
+            ``download_url`` instead.
+        file_name: Human-readable title of the attachment.
+        is_link: Whether this attachment is a link rather than a
+            downloadable file — link attachments have no ``download_url``.
+        download_url: Signed, time-limited URL to download the file
+            directly, or ``None`` when absent (typically because the
+            attachment is a link, or the portal has not published a file).
+        raw: The unmodified API object this model was parsed from.
+    """
+
+    attachment_id: int
+    file_name: str | None = None
+    is_link: bool = False
+    download_url: str | None = None
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    @classmethod
+    def from_api(cls, raw: dict[str, Any]) -> "AgendaAttachment":
+        """Build an :class:`AgendaAttachment` from one ``attachmentsList`` entry.
+
+        Raises:
+            PayloadError: If the load-bearing ``id`` field is absent.
+        """
+        return cls(
+            attachment_id=int(require(raw, "id", "AgendaAttachment")),
+            file_name=_text_or_none(raw.get("fileName")),
+            is_link=bool(raw.get("isLink")),
+            download_url=_text_or_none(raw.get("pdfVersionFullPath")),
+            raw=raw,
+        )
+
+
+@dataclass(frozen=True)
+class AgendaItem:
+    """One node (section or item) in a structured agenda's tree.
+
+    Attributes:
+        item_id: Stable numeric id of the agenda item.
+        name: Item title.
+        is_section: Whether this node is a section heading rather than a
+            substantive agenda item.
+        sort_order: Position of this item within the whole agenda's flat
+            display order (shared across nesting levels).
+        attachments: Documents attached directly to this item.
+        children: Nested items, ordered by ``sort_order``.
+        raw: The unmodified API object this model was parsed from.
+    """
+
+    item_id: int
+    name: str | None = None
+    is_section: bool = False
+    sort_order: int | None = None
+    attachments: list[AgendaAttachment] = field(default_factory=list)
+    children: list["AgendaItem"] = field(default_factory=list)
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    @classmethod
+    def from_api(cls, raw: dict[str, Any]) -> "AgendaItem":
+        """Build an :class:`AgendaItem` from one ``items``/``childItems`` entry.
+
+        Raises:
+            PayloadError: If the load-bearing ``id`` field is absent.
+        """
+        children = [AgendaItem.from_api(entry) for entry in (raw.get("childItems") or [])]
+        children.sort(key=_sort_order_key)
+        return cls(
+            item_id=int(require(raw, "id", "AgendaItem")),
+            name=_text_or_none(raw.get("agendaObjectItemName")),
+            is_section=bool(raw.get("isSection")),
+            sort_order=raw.get("sortOrder"),
+            attachments=[
+                AgendaAttachment.from_api(entry) for entry in (raw.get("attachmentsList") or [])
+            ],
+            children=children,
+            raw=raw,
+        )
+
+
+@dataclass(frozen=True)
+class Agenda:
+    """The structured agenda (sections, items, attachments) for one meeting.
+
+    Attributes:
+        agenda_id: The agenda's stable numeric id — matches
+            :attr:`Event.agenda_id` (see that attribute for the ``0``/
+            "no agenda" sentinel, already normalized to ``None`` there).
+        items: Top-level agenda nodes, ordered by ``sort_order``. Use
+            :meth:`walk_items` to flatten the whole tree.
+        raw: The unmodified API response this model was parsed from.
+    """
+
+    agenda_id: int
+    items: list[AgendaItem] = field(default_factory=list)
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    def walk_items(self) -> Iterator[AgendaItem]:
+        """Yield every item in the agenda tree, depth-first in sort order.
+
+        Each item is yielded before its children, and children are visited
+        in ``sort_order`` before the next sibling — the same order the
+        portal displays the agenda in — so callers can flatten the
+        section/item tree into one ordered sequence without recursing
+        themselves.
+        """
+
+        def _walk(items: list[AgendaItem]) -> Iterator[AgendaItem]:
+            for item in items:
+                yield item
+                yield from _walk(item.children)
+
+        yield from _walk(self.items)
+
+    @classmethod
+    def from_api(cls, raw: dict[str, Any]) -> "Agenda":
+        """Build an :class:`Agenda` from a ``GET /Meetings/{agendaId}`` response.
+
+        Raises:
+            PayloadError: If the load-bearing ``id`` field is absent.
+        """
+        items = [AgendaItem.from_api(entry) for entry in (raw.get("items") or [])]
+        items.sort(key=_sort_order_key)
+        return cls(
+            agenda_id=int(require(raw, "id", "Agenda")),
+            items=items,
             raw=raw,
         )

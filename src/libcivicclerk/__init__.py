@@ -11,21 +11,34 @@ from libcivicclerk.errors import (
     APIStatusError,
     CivicClerkError,
     NetworkError,
+    NotFoundError,
     PayloadError,
     UnknownTenantError,
 )
-from libcivicclerk.models import Event, EventCategory, EventLocation, PublishedFile
+from libcivicclerk.models import (
+    Agenda,
+    AgendaAttachment,
+    AgendaItem,
+    Event,
+    EventCategory,
+    EventLocation,
+    PublishedFile,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
     "APIStatusError",
+    "Agenda",
+    "AgendaAttachment",
+    "AgendaItem",
     "CivicClerkClient",
     "CivicClerkError",
     "Event",
     "EventCategory",
     "EventLocation",
     "NetworkError",
+    "NotFoundError",
     "PayloadError",
     "PublishedFile",
     "UnknownTenantError",
