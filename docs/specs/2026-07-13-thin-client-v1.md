@@ -181,6 +181,15 @@ Developer stories (the library surface):
   Malformed OData queries return 400 with an error envelope whose
   `error.message` names the offending field — worth surfacing in
   APIStatusError messages (innererror/stacktrace must not be exposed).
+- 2026-07-13: Simplification pass (post-slices): error translation
+  consolidated into one `_get`/`_raise_for_error` path; the speculative
+  `eventCategoryId` fallback removed (only `categoryId` is verified; `raw`
+  is the escape hatch); redundant `Z`-replacement dropped (3.11
+  `fromisoformat` handles it); test client-wiring consolidated in conftest.
+  Explicitly NOT adopted: parsing the OData 400 `error.message` envelope
+  into APIStatusError — the client builds all queries from typed
+  parameters, so malformed-OData 400s are unreachable through the public
+  surface; complexity with no reachable benefit.
 - 2026-07-13: `plainText=true` on GetMeetingFileStream returns clean UTF-8
   text (text/plain) for some files but an empty 200 for others that
   demonstrably have text layers; an invalid fileId ALSO returns an empty
