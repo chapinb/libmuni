@@ -239,10 +239,12 @@ Developer stories (the library surface):
   Events result sets and make `get_events` return complete results (or
   expose paging explicitly); record findings. Touches client.py, tests.
   (Folded into slice 4: server pages at 15 with `@odata.nextLink`.)
-- [ ] 7. Structured agenda: `get_agenda(agenda_id)` returning a typed agenda
+- [x] 7. Structured agenda: `get_agenda(agenda_id)` returning a typed agenda
   tree (sections/items/attachments) plus a flattening walk helper; fixture
   covers nesting, links, and empty agendas. Touches client.py, models.py,
-  tests.
+  tests. (Live finding: nonexistent agenda ids usually answer 200 with an
+  id-0 empty payload, 404 only for malformed ids — both raise
+  NotFoundError.)
 - [ ] 8. Downloads: durable URL resolution and byte streaming for meeting
   files and agenda attachments, preferring `pdfVersionFullPath` and guarding
   the attachment-id collision. Touches client.py, models.py, tests.
