@@ -41,7 +41,7 @@ def _naive_datetime_or_none(value: Any) -> dt.datetime | None:
     if not value:
         return None
     try:
-        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(str(value))
     except ValueError:
         return None
     if parsed.year in _SENTINEL_YEARS:
@@ -88,7 +88,7 @@ class EventCategory:
         is_public = raw.get("isPublic")
         return cls(
             id=int(require(raw, "id", "EventCategory")),
-            name=raw.get("categoryDesc"),
+            name=_text_or_none(raw.get("categoryDesc")),
             sort_order=raw.get("sortOrder"),
             is_public=None if is_public is None else bool(is_public),
             parent_id=None if parent_id in (None, -1) else int(parent_id),
@@ -254,7 +254,7 @@ class Event:
             raise PayloadError(f"Event {raw.get('id')} has unparseable eventDate")
 
         agenda_id = raw.get("agendaId")
-        category_id = raw.get("categoryId", raw.get("eventCategoryId"))
+        category_id = raw.get("categoryId")
         duration = dt.timedelta(
             hours=raw.get("durationHrs") or 0, minutes=raw.get("durationMin") or 0
         )
