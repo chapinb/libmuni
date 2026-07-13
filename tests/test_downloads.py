@@ -10,7 +10,7 @@ code alone.
 import httpx
 import pytest
 
-from libcivicclerk import AgendaAttachment, CivicClerkClient, NotFoundError
+from libcivicclerk import AgendaAttachment, CivicClerkClient, NetworkError, NotFoundError
 
 
 def stream_client(
@@ -69,6 +69,26 @@ def test_download_file_raises_not_found_on_empty_body_and_leaves_no_file(tmp_pat
         client.download_file(999999, destination)
 
     assert not destination.exists()
+
+
+def test_download_file_interrupted_mid_stream_leaves_no_partial_file(tmp_path):
+    class DropsMidStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"partial bytes"
+            raise httpx.ReadError("connection lost")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=DropsMidStream())
+
+    client = CivicClerkClient(
+        "exampletown", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    destination = tmp_path / "interrupted.pdf"
+
+    with pytest.raises(NetworkError):
+        client.download_file(123, destination)
+
+    assert not destination.exists()  # docstring promises no partial file
 
 
 def test_download_file_raises_not_found_on_404(tmp_path):

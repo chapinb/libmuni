@@ -365,6 +365,7 @@ class CivicClerkClient:
             APIStatusError: If the response is another error status.
             NetworkError: If the request fails at the network level.
         """
+        wrote_any_bytes = False
         try:
             with self._http.stream("GET", url) as response:
                 if not_found_error is not None and response.status_code == 404:
@@ -375,20 +376,21 @@ class CivicClerkClient:
                         status_code=response.status_code,
                         url=url,
                     )
-                wrote_any_bytes = False
                 with destination.open("wb") as file:
                     for chunk in response.iter_bytes():
                         if chunk:
                             wrote_any_bytes = True
                             file.write(chunk)
+            if not wrote_any_bytes:
+                raise NotFoundError(
+                    f"file at {url} is unavailable (empty response body)",
+                    status_code=200,
+                    url=url,
+                )
         except httpx.TransportError as exc:
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
-
-        if not wrote_any_bytes:
             destination.unlink(missing_ok=True)
-            raise NotFoundError(
-                f"file at {url} is unavailable (empty response body)",
-                status_code=200,
-                url=url,
-            )
+            raise NetworkError(f"request to {url} failed: {exc}") from exc
+        except Exception:
+            destination.unlink(missing_ok=True)
+            raise
         return destination
