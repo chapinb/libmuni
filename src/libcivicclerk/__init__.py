@@ -6,4 +6,13 @@ thin, typed client over the public (unauthenticated) API at
 ``https://{tenant}.api.civicclerk.com/v1``.
 """
 
+from libcivicclerk.client import CivicClerkClient
+from libcivicclerk.models import EventCategory
+
 __version__ = "0.1.0"
+
+__all__ = [
+    "CivicClerkClient",
+    "EventCategory",
+    "__version__",
+]

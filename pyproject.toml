@@ -57,6 +57,10 @@ select = [
     "RUF", # ruff-specific
     "D",   # pydocstyle -- public surface must be self-documenting
 ]
+ignore = [
+    "D105", # magic-method docstrings add no information
+    "D107", # __init__ args are documented in the class docstring (google style)
+]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 

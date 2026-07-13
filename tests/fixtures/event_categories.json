@@ -1,0 +1,29 @@
+{
+  "@odata.context": "https://exampletown.api.civicclerk.com/v1/$metadata#EventCategories",
+  "value": [
+    {
+      "id": 11,
+      "categoryDesc": "Town Council",
+      "sortOrder": 1,
+      "isPublic": 1,
+      "parentId": -1,
+      "timeStamp": "AAAAAAAQAAA="
+    },
+    {
+      "id": 12,
+      "categoryDesc": "Planning Board",
+      "sortOrder": 2,
+      "isPublic": 1,
+      "parentId": -1,
+      "timeStamp": "AAAAAAAQAAB="
+    },
+    {
+      "id": 15,
+      "categoryDesc": "Parks Subcommittee",
+      "sortOrder": 3,
+      "isPublic": 0,
+      "parentId": 11,
+      "timeStamp": "AAAAAAAQAAC="
+    }
+  ]
+}
