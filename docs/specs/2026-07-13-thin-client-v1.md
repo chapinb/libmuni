@@ -45,10 +45,16 @@ Developer stories (the library surface):
 ## Requirements
 
 - A client is constructed from a tenant subdomain; every public method maps
-  to exactly one HTTP request and returns typed models.
+  to exactly one HTTP request and returns typed models — except listings,
+  where the API serves fixed pages of 15 and the client follows
+  continuation links (one request per page, documented per method, with a
+  lazy iterator variant).
 - Event categories, events (with category and date filtering), structured
   agendas, and file downloads are all reachable.
-- Event times are timezone-aware datetimes preserving what the API provides.
+- Event times are naive local wall-clock datetimes: the API stamps a ``Z``
+  suffix on values that are actually local time (verified live: evening
+  meetings arrive as ``19:00:00Z``), so claiming UTC would corrupt every
+  calendar built on the data. Docstrings state this explicitly.
 - Every model exposes the raw response dict it was parsed from.
 - Parsing is pure (JSON dict in, models out) and tested against recorded
   fixtures without HTTP mocking.
@@ -146,6 +152,21 @@ Developer stories (the library surface):
   exist on every tenant, a 404 on an always-present endpoint is raised as
   UnknownTenantError; id-parameterized lookups will get their own not-found
   semantics when added.
+- 2026-07-13: Datetime finding (verified live): `eventDate` carries local
+  wall-clock time with a spurious `Z` suffix (evening meetings appear as
+  `19:00:00Z`). All model datetimes are therefore naive wall-clock values;
+  the "timezone-aware" requirement wording was revised accordingly.
+- 2026-07-13: Pagination finding (verified live): `/v1/Events` serves fixed
+  pages of 15 with an absolute `@odata.nextLink` (`$skiptoken`-based).
+  `get_events` follows links to completion; `iter_events` fetches lazily.
+  Date-range filter syntax verified: `eventDate ge 2026-07-01T00:00:00Z and
+  eventDate le 2026-08-01T00:00:00Z` (unquoted ISO literals), combinable
+  with `categoryId eq N`.
+- 2026-07-13: Attendance fields confirmed in live payloads and modeled on
+  Event: `eventLocation` (address object), `externalMediaUrl` (virtual
+  join link), `youtubeVideoId`/`mediaStreamPath` (recordings, exposed with
+  a `recording_url` convenience), `durationHrs`/`durationMin` (mapped to a
+  single optional timedelta; 0h0m means unset).
 
 ## Deferred
 
@@ -183,7 +204,7 @@ Developer stories (the library surface):
   payload) with the two-tier load-bearing-field policy and `raw` escape
   hatch established as conventions; tenant typos fail loudly. Touches
   errors.py, client.py, models.py, tests.
-- [ ] 4. Events: `get_events(category_id=None, from_date=None, to_date=None)`
+- [x] 4. Events: `get_events(category_id=None, from_date=None, to_date=None)`
   returning typed `Event` models with timezone-aware datetimes and
   `published_files`; fixture tests cover filter combinations, empty results,
   and datetime edge cases. Touches client.py, models.py, tests.
@@ -191,9 +212,10 @@ Developer stories (the library surface):
   location / virtual-join / recording fields, model what exists on `Event`
   (absent → None); record findings in this spec's decision log. Touches
   models.py, fixtures, tests.
-- [ ] 6. Pagination spike→slice: determine OData paging behavior on large
+- [x] 6. Pagination spike→slice: determine OData paging behavior on large
   Events result sets and make `get_events` return complete results (or
   expose paging explicitly); record findings. Touches client.py, tests.
+  (Folded into slice 4: server pages at 15 with `@odata.nextLink`.)
 - [ ] 7. Structured agenda: `get_agenda(agenda_id)` returning a typed agenda
   tree (sections/items/attachments) plus a flattening walk helper; fixture
   covers nesting, links, and empty agendas. Touches client.py, models.py,
