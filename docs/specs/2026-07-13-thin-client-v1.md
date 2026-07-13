@@ -136,6 +136,11 @@ Developer stories (the library surface):
   see docs/decisions.md.
 - 2026-07-13: MIT license; Python floor 3.11; CI validates only (no PyPI
   publish workflow in v1).
+- 2026-07-13: PyPI name `libcivicclerk` confirmed available (404 on the
+  package JSON endpoint).
+- 2026-07-13: ruff and ty run as local prek hooks via `uv run` (pinned to
+  the project's dev-group versions) rather than remote hook repos; prek's
+  native hooks cover the generic checks.
 
 ## Deferred
 
@@ -160,7 +165,7 @@ Developer stories (the library surface):
 
 ## Slices
 
-- [ ] 1. Scaffold: uv project `libcivicclerk` (src layout, ruff, ty, pytest,
+- [x] 1. Scaffold: uv project `libcivicclerk` (src layout, ruff, ty, pytest,
   prek hooks, MIT license, README stub with disclaimer, CLAUDE.md) plus
   GitHub Actions CI (hooks, types, tests on 3.11–3.13, build); importable
   empty package; suite green locally. Touches pyproject.toml, .github/,
