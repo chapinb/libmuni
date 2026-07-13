@@ -190,6 +190,15 @@ Developer stories (the library surface):
   into APIStatusError — the client builds all queries from typed
   parameters, so malformed-OData 400s are unreachable through the public
   surface; complexity with no reachable benefit.
+- 2026-07-13: Correctness review outcomes: failed downloads no longer
+  delete a pre-existing destination file (unlink only after the client
+  opened it); malformed-but-present payload fields (string ids, scalars
+  where lists belong) now surface as PayloadError via a single
+  `_guarded_parse` wrapper on every `from_api`, keeping the "except
+  CivicClerkError catches everything" promise. Left as-is by choice:
+  `@odata.nextLink` is followed verbatim with no host check or page cap
+  (thin-client trust posture), and `bool` passed as `category_id` is a
+  type-checker-caught misuse, not a runtime guard's job.
 - 2026-07-13: `plainText=true` on GetMeetingFileStream returns clean UTF-8
   text (text/plain) for some files but an empty 200 for others that
   demonstrably have text layers; an invalid fileId ALSO returns an empty
