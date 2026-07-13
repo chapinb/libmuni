@@ -384,8 +384,8 @@ class CivicClerkClient:
                 with destination.open("wb") as file:
                     for chunk in response.iter_bytes():
                         if chunk:
-                            wrote_any_bytes = True
                             file.write(chunk)
+                            wrote_any_bytes = True
             if not wrote_any_bytes:
                 raise NotFoundError(
                     f"file at {url} is unavailable (empty response body)",
