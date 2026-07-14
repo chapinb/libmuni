@@ -72,5 +72,5 @@ URL credentials from entering exception text or attributes.
 
 - [x] 1. Preserve destinations with atomic temporary-file saves, proven by interrupted-overwrite and successful-replacement tests; touches streams and download tests.
 - [x] 2. Validate JSON response and collection shapes as `PayloadError`, proven by malformed top-level and `value` tests; touches client and error tests.
-- [ ] 3. Redact sensitive URL components from all exception diagnostics, proven across HTTP, network, and empty-stream failures; touches errors, client, streams, and tests.
+- [x] 3. Redact sensitive URL components from all exception diagnostics, proven across HTTP, network, and empty-stream failures; touches errors, client, streams, and tests.
 - [ ] 4. Expand the security and usage documentation to cover continuation links, redirects, safe diagnostics, and caller-owned logging; touches documentation.

@@ -27,6 +27,7 @@ from libcivicclerk.errors import (
     PayloadError,
     UnknownTenantError,
     _network_error,
+    _safe_url,
 )
 from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
 from libcivicclerk.streams import FileStream
@@ -501,15 +502,17 @@ class CivicClerkClient:
         try:
             payload = response.json()
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise PayloadError(f"response from {url} is not valid JSON") from exc
+            raise PayloadError(f"response from {_safe_url(url)} is not valid JSON") from exc
         if not isinstance(payload, dict):
             raise PayloadError(
-                f"response from {url} must be a JSON object, got {type(payload).__name__}"
+                f"response from {_safe_url(url)} must be a JSON object, "
+                f"got {type(payload).__name__}"
             )
         value = payload.get("value", [])
         if not isinstance(value, list):
             raise PayloadError(
-                f"response from {url} field 'value' must be an array, got {type(value).__name__}"
+                f"response from {_safe_url(url)} field 'value' must be an array, "
+                f"got {type(value).__name__}"
             )
         return payload
 
@@ -546,13 +549,13 @@ class CivicClerkClient:
         ``APIStatusError``.
         """
         if response.status_code == 404:
-            message = f"got 404 for {url}"
+            message = f"got 404 for {_safe_url(url)}"
             if issubclass(not_found_error, UnknownTenantError):
                 message += f"; tenant {self.tenant!r} likely does not exist"
             raise not_found_error(message, status_code=404, url=url)
         if response.is_error:
             raise APIStatusError(
-                f"API returned {response.status_code} for {url}",
+                f"API returned {response.status_code} for {_safe_url(url)}",
                 status_code=response.status_code,
                 url=url,
             )

@@ -20,7 +20,7 @@ from pathlib import Path, PurePosixPath
 
 import httpx
 
-from libcivicclerk.errors import NotFoundError, _network_error
+from libcivicclerk.errors import NotFoundError, _network_error, _safe_url
 
 
 class FileStream:
@@ -85,7 +85,7 @@ class FileStream:
         """The error for an empty body — the API's way of saying "no such file"."""
         url = str(self._response.request.url)
         return NotFoundError(
-            f"file at {url} is unavailable (empty response body)",
+            f"file at {_safe_url(url)} is unavailable (empty response body)",
             status_code=200,
             url=url,
         )

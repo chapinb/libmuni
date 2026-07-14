@@ -13,7 +13,13 @@ import httpx
 import pytest
 from conftest import mock_client
 
-from libcivicclerk import AgendaAttachment, CivicClerkClient, NetworkError, NotFoundError
+from libcivicclerk import (
+    AgendaAttachment,
+    APIStatusError,
+    CivicClerkClient,
+    NetworkError,
+    NotFoundError,
+)
 
 
 def stream_client(
@@ -497,6 +503,52 @@ def test_open_attachment_raises_not_found_on_entry_when_body_is_empty():
 
     with pytest.raises(NotFoundError), client.open_attachment(attachment):
         pass  # pragma: no cover — entering the stream must raise
+
+
+@pytest.mark.parametrize(
+    ("handler", "error_type"),
+    [
+        (lambda request: httpx.Response(403), APIStatusError),
+        (lambda request: httpx.Response(200, content=b""), NotFoundError),
+    ],
+)
+def test_attachment_response_errors_redact_signed_url_credentials(handler, error_type):
+    client = mock_client(handler)
+    attachment = AgendaAttachment(
+        attachment_id=4,
+        download_url=(
+            "https://user:password@blob.example:8443/files/report.pdf?sv=1&sig=TOPSECRET#private"
+        ),
+    )
+
+    with pytest.raises(error_type) as excinfo, client.open_attachment(attachment):
+        pass  # pragma: no cover — entering the stream must raise
+
+    safe_url = "https://blob.example:8443/files/report.pdf"
+    assert str(excinfo.value) == (
+        f"API returned 403 for {safe_url}"
+        if error_type is APIStatusError
+        else f"file at {safe_url} is unavailable (empty response body)"
+    )
+    assert excinfo.value.url == safe_url
+
+
+def test_attachment_network_errors_redact_signed_url_credentials():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    client = mock_client(handler)
+    attachment = AgendaAttachment(
+        attachment_id=5,
+        download_url="https://blob.example/files/report.pdf?sv=1&sig=TOPSECRET#private",
+    )
+
+    with pytest.raises(NetworkError) as excinfo, client.open_attachment(attachment):
+        pass  # pragma: no cover — entering the stream must raise
+
+    assert str(excinfo.value) == (
+        "request to https://blob.example/files/report.pdf failed: connection refused"
+    )
 
 
 # --- download_attachment: agenda attachments via their signed download_url ---

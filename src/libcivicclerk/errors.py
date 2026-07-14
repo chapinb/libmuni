@@ -9,6 +9,7 @@ empty lists and ``None`` fields, not an exception.
 """
 
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 class CivicClerkError(Exception):
@@ -23,6 +24,21 @@ class NetworkError(CivicClerkError):
     """
 
 
+def _safe_url(url: str) -> str:
+    """Return diagnostic URL context without credentials or bearer tokens."""
+    try:
+        parsed = urlsplit(url)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return "<invalid URL>"
+    if hostname is None:
+        return urlunsplit((parsed.scheme, "", parsed.path, "", ""))
+    host = f"[{hostname}]" if ":" in hostname else hostname
+    netloc = f"{host}:{port}" if port is not None else host
+    return urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+
+
 def _network_error(url: str, exc: Exception) -> NetworkError:
     """Build the ``NetworkError`` for a transport failure against ``url``.
 
@@ -30,7 +46,7 @@ def _network_error(url: str, exc: Exception) -> NetworkError:
     die before the response arrives or partway through its body, and both
     must read the same way to a caller.
     """
-    return NetworkError(f"request to {url} failed: {exc}")
+    return NetworkError(f"request to {_safe_url(url)} failed: {exc}")
 
 
 class APIStatusError(CivicClerkError):
@@ -44,7 +60,7 @@ class APIStatusError(CivicClerkError):
     def __init__(self, message: str, *, status_code: int, url: str) -> None:
         super().__init__(message)
         self.status_code = status_code
-        self.url = url
+        self.url = _safe_url(url)
 
 
 class UnknownTenantError(APIStatusError):

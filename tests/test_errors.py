@@ -63,6 +63,32 @@ def test_non_utf8_json_success_body_raises_payload_error():
         client.get_event_categories()
 
 
+def test_malformed_continuation_payload_redacts_url_credentials():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "value": [],
+                    "@odata.nextLink": (
+                        "https://user:password@blob.example/events?skip=1&sig=TOPSECRET#private"
+                    ),
+                },
+            )
+        return httpx.Response(200, text="not JSON")
+
+    client = mock_client(handler)
+
+    with pytest.raises(PayloadError) as excinfo:
+        list(client.iter_events())
+
+    assert str(excinfo.value) == "response from https://blob.example/events is not valid JSON"
+
+
 @pytest.mark.parametrize("value", [None, {}, 7, "categories"])
 def test_non_array_collection_value_raises_payload_error(value):
     client = mock_client(lambda request: httpx.Response(200, json={"value": value}))
