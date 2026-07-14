@@ -73,24 +73,26 @@ def _naive_datetime_or_none(value: Any) -> dt.datetime | None:
 
 @dataclass(frozen=True)
 class EventCategory:
-    """A meeting category (board, commission, or committee) of a tenant.
-
-    Attributes:
-        id: The category's stable numeric id, used to filter events.
-        name: Human-readable category name (``None`` if the API omits it).
-        sort_order: Position in the tenant's configured display order.
-        is_public: Whether the tenant marks the category public.
-        parent_id: Id of the parent category, or ``None`` for top-level
-            categories (the API encodes "no parent" as ``-1``).
-        raw: The unmodified API object this model was parsed from.
-    """
+    """A meeting category (board, commission, or committee) of a tenant."""
 
     id: int
+    """The category's stable numeric id, used to filter events."""
+
     name: str | None = None
+    """Human-readable category name (``None`` if the API omits it)."""
+
     sort_order: int | None = None
+    """Position in the tenant's configured display order."""
+
     is_public: bool | None = None
+    """Whether the tenant marks the category public."""
+
     parent_id: int | None = None
+    """Id of the parent category, or ``None`` for top-level categories
+    (the API encodes "no parent" as ``-1``)."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @classmethod
     @_guarded_parse
@@ -121,24 +123,24 @@ class EventCategory:
 
 @dataclass(frozen=True)
 class PublishedFile:
-    """One meeting-level document published alongside an event.
-
-    Attributes:
-        file_id: Stable numeric id, used to download the file.
-        file_type: The portal's label for the document ("Agenda",
-            "Agenda Packet", "Minutes", ...), or ``None`` if omitted.
-        name: Human-readable file title.
-        published_at: When the portal published the file, as a naive
-            datetime (the API's timezone markers are unreliable; see
-            :class:`Event`).
-        raw: The unmodified API object this model was parsed from.
-    """
+    """One meeting-level document published alongside an event."""
 
     file_id: int
+    """Stable numeric id, used to download the file."""
+
     file_type: str | None = None
+    """The portal's label for the document ("Agenda", "Agenda Packet",
+    "Minutes", ...), or ``None`` if omitted."""
+
     name: str | None = None
+    """Human-readable file title."""
+
     published_at: dt.datetime | None = None
+    """When the portal published the file, as a naive datetime (the API's
+    timezone markers are unreliable; see :class:`Event`)."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @classmethod
     @_guarded_parse
@@ -163,22 +165,25 @@ class EventLocation:
 
     All fields are best-effort; portals frequently use ``address1`` as a
     free-text room or venue description.
-
-    Attributes:
-        address1: First address line (often the venue or room).
-        address2: Second address line.
-        city: City name.
-        state: State or region.
-        zip_code: Postal code.
-        raw: The unmodified API object this model was parsed from.
     """
 
     address1: str | None = None
+    """First address line (often the venue or room)."""
+
     address2: str | None = None
+    """Second address line."""
+
     city: str | None = None
+    """City name."""
+
     state: str | None = None
+    """State or region."""
+
     zip_code: str | None = None
+    """Postal code."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @classmethod
     @_guarded_parse
@@ -215,44 +220,55 @@ class Event:
     are actually local wall-clock times, so all datetimes on this model are
     naive and carry the wall-clock reading as published — an event at
     ``19:00`` local arrives as ``19:00``, whatever the timezone.
-
-    Attributes:
-        id: The event's stable numeric id.
-        starts_at: Scheduled start as a naive local wall-clock datetime.
-        name: Event title.
-        description: Event description, ``None`` when blank.
-        category_id: Id of the event's category (board or committee).
-        category_name: Name of the event's category.
-        agenda_id: Key for the structured agenda, or ``None`` when no
-            agenda is published (the API encodes that as ``0``).
-        agenda_name: Title of the published agenda.
-        duration: Scheduled length, or ``None`` when the portal left it
-            unset (the API encodes that as zero hours and minutes).
-        location: Physical venue, or ``None`` when no address is given.
-        virtual_meeting_url: Join link (Zoom, Teams, ...) when the portal
-            publishes one.
-        youtube_video_id: YouTube id of the meeting recording, if any.
-        media_stream_url: Direct stream URL of the recording, if any.
-        published_files: Meeting-level documents (agenda, packet,
-            minutes, ...) published for this event.
-        raw: The unmodified API object this model was parsed from.
     """
 
     id: int
+    """The event's stable numeric id."""
+
     starts_at: dt.datetime
+    """Scheduled start as a naive local wall-clock datetime."""
+
     name: str | None = None
+    """Event title."""
+
     description: str | None = None
+    """Event description, ``None`` when blank."""
+
     category_id: int | None = None
+    """Id of the event's category (board or committee)."""
+
     category_name: str | None = None
+    """Name of the event's category."""
+
     agenda_id: int | None = None
+    """Key for the structured agenda, or ``None`` when no agenda is
+    published (the API encodes that as ``0``)."""
+
     agenda_name: str | None = None
+    """Title of the published agenda."""
+
     duration: dt.timedelta | None = None
+    """Scheduled length, or ``None`` when the portal left it unset (the
+    API encodes that as zero hours and minutes)."""
+
     location: EventLocation | None = None
+    """Physical venue, or ``None`` when no address is given."""
+
     virtual_meeting_url: str | None = None
+    """Join link (Zoom, Teams, ...) when the portal publishes one."""
+
     youtube_video_id: str | None = None
+    """YouTube id of the meeting recording, if any."""
+
     media_stream_url: str | None = None
+    """Direct stream URL of the recording, if any."""
+
     published_files: list[PublishedFile] = field(default_factory=list)
+    """Meeting-level documents (agenda, packet, minutes, ...) published
+    for this event."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @property
     def recording_url(self) -> str | None:
@@ -312,27 +328,27 @@ def _sort_order_key(item: "AgendaItem") -> int:
 
 @dataclass(frozen=True)
 class AgendaAttachment:
-    """One document attached to a structured agenda item.
-
-    Attributes:
-        attachment_id: Stable numeric id of the attachment. Note this id is
-            reused in a different namespace by the file-download endpoint,
-            so it must never be used to synthesize a download URL — use
-            ``download_url`` instead.
-        file_name: Human-readable title of the attachment.
-        is_link: Whether this attachment is a link rather than a
-            downloadable file — link attachments have no ``download_url``.
-        download_url: Signed, time-limited URL to download the file
-            directly, or ``None`` when absent (typically because the
-            attachment is a link, or the portal has not published a file).
-        raw: The unmodified API object this model was parsed from.
-    """
+    """One document attached to a structured agenda item."""
 
     attachment_id: int
+    """Stable numeric id of the attachment. Note this id is reused in a
+    different namespace by the file-download endpoint, so it must never be
+    used to synthesize a download URL — use ``download_url`` instead."""
+
     file_name: str | None = None
+    """Human-readable title of the attachment."""
+
     is_link: bool = False
+    """Whether this attachment is a link rather than a downloadable file —
+    link attachments have no ``download_url``."""
+
     download_url: str | None = None
+    """Signed, time-limited URL to download the file directly, or ``None``
+    when absent (typically because the attachment is a link, or the portal
+    has not published a file)."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @classmethod
     @_guarded_parse
@@ -353,27 +369,30 @@ class AgendaAttachment:
 
 @dataclass(frozen=True)
 class AgendaItem:
-    """One node (section or item) in a structured agenda's tree.
-
-    Attributes:
-        item_id: Stable numeric id of the agenda item.
-        name: Item title.
-        is_section: Whether this node is a section heading rather than a
-            substantive agenda item.
-        sort_order: Position of this item within the whole agenda's flat
-            display order (shared across nesting levels).
-        attachments: Documents attached directly to this item.
-        children: Nested items, ordered by ``sort_order``.
-        raw: The unmodified API object this model was parsed from.
-    """
+    """One node (section or item) in a structured agenda's tree."""
 
     item_id: int
+    """Stable numeric id of the agenda item."""
+
     name: str | None = None
+    """Item title."""
+
     is_section: bool = False
+    """Whether this node is a section heading rather than a substantive
+    agenda item."""
+
     sort_order: int | None = None
+    """Position of this item within the whole agenda's flat display order
+    (shared across nesting levels)."""
+
     attachments: list[AgendaAttachment] = field(default_factory=list)
+    """Documents attached directly to this item."""
+
     children: list["AgendaItem"] = field(default_factory=list)
+    """Nested items, ordered by ``sort_order``."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API object this model was parsed from."""
 
     @classmethod
     @_guarded_parse
@@ -400,20 +419,19 @@ class AgendaItem:
 
 @dataclass(frozen=True)
 class Agenda:
-    """The structured agenda (sections, items, attachments) for one meeting.
-
-    Attributes:
-        agenda_id: The agenda's stable numeric id — matches
-            :attr:`Event.agenda_id` (see that attribute for the ``0``/
-            "no agenda" sentinel, already normalized to ``None`` there).
-        items: Top-level agenda nodes, ordered by ``sort_order``. Use
-            :meth:`walk_items` to flatten the whole tree.
-        raw: The unmodified API response this model was parsed from.
-    """
+    """The structured agenda (sections, items, attachments) for one meeting."""
 
     agenda_id: int
+    """The agenda's stable numeric id — matches :attr:`Event.agenda_id`
+    (see that attribute for the ``0``/"no agenda" sentinel, already
+    normalized to ``None`` there)."""
+
     items: list[AgendaItem] = field(default_factory=list)
+    """Top-level agenda nodes, ordered by ``sort_order``. Use
+    :meth:`walk_items` to flatten the whole tree."""
+
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    """The unmodified API response this model was parsed from."""
 
     def walk_items(self) -> Iterator[AgendaItem]:
         """Yield every item in the agenda tree, depth-first in sort order.
