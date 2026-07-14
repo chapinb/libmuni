@@ -177,6 +177,31 @@ def test_open_file_raises_not_found_on_entry_when_content_length_is_zero():
         pass  # pragma: no cover — entering the stream must raise
 
 
+def test_iter_bytes_yields_the_whole_body_when_content_length_is_known():
+    client = stream_client(b"%PDF-1.4 fake pdf bytes")
+
+    with client.open_file(123) as stream:
+        assert b"".join(stream.iter_bytes()) == b"%PDF-1.4 fake pdf bytes"
+
+
+def test_iter_bytes_replays_the_chunk_peeked_at_entry():
+    # Entry reads the first chunk to prove the body is non-empty. If that
+    # chunk is not replayed here, every chunked download silently loses its
+    # first chunk.
+    class ChunkedStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"first chunk "
+            yield b"second chunk "
+            yield b"third chunk"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=ChunkedStream())
+
+    with mock_client(handler).open_file(123) as stream:
+        assert stream.size is None  # chunked: emptiness was settled by reading
+        assert b"".join(stream.iter_bytes()) == b"first chunk second chunk third chunk"
+
+
 def test_open_file_raises_not_found_on_entry_when_chunked_body_is_empty():
     # Same trap, but the server declares no Content-Length, so emptiness can
     # only be discovered by reading the first chunk.

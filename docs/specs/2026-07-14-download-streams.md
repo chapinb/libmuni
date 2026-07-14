@@ -169,7 +169,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   header is absent, an empty first chunk both raise `NotFoundError` from the
   `with` statement itself. Acceptance: entering the stream for an empty 200
   raises before any body is read, and no file is created. Touches `streams.py`.
-- [ ] **`iter_bytes()` replaying the peeked chunk** — a chunked response with
+- [x] **`iter_bytes()` replaying the peeked chunk** — a chunked response with
   no `Content-Length` yields every byte, first chunk included. Acceptance:
   bytes collected from `iter_bytes` equal the full body for both
   `Content-Length` and chunked responses. Touches `streams.py`.

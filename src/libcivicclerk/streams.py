@@ -11,6 +11,8 @@ live HTTP response and is only valid inside the ``with`` block that yielded
 it.
 """
 
+from collections.abc import Iterator
+
 import httpx
 
 from libcivicclerk.errors import NotFoundError
@@ -67,6 +69,25 @@ class FileStream:
             status_code=200,
             url=url,
         )
+
+    def iter_bytes(self) -> Iterator[bytes]:
+        """Yield the body in non-empty chunks, starting from its first byte.
+
+        Includes the chunk read at entry to prove the body was not empty,
+        so no bytes are lost. The body is read from the network as it is
+        consumed and cannot be rewound: this is a single pass, and calling
+        it again yields only what is left. Valid only inside the ``with``
+        block that yielded this stream.
+
+        Raises:
+            NetworkError: If the connection fails partway through the body.
+        """
+        if self._buffered is not None:
+            first, self._buffered = self._buffered, None
+            yield first
+        for chunk in self._chunks:
+            if chunk:
+                yield chunk
 
     @property
     def content_type(self) -> str | None:
