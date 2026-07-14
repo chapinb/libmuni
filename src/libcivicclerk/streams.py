@@ -121,6 +121,12 @@ class FileStream:
         block that yielded this stream, and only once: the body cannot be
         rewound.
 
+        The body is written until the server stops sending; there is no
+        size cap, so a hostile or broken endpoint can fill the destination
+        disk. Bound it yourself — check ``size`` where the server declares
+        one, or wrap ``iter_bytes`` with your own running-total limit — when
+        writing from a tenant you do not fully trust.
+
         Args:
             destination: Local path to write the body to, used exactly as
                 given.
