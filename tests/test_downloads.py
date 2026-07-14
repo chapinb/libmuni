@@ -332,6 +332,37 @@ def test_save_interrupted_mid_stream_leaves_no_partial_file(tmp_path):
     assert not destination.exists()
 
 
+def test_save_interrupted_mid_stream_preserves_existing_destination(tmp_path):
+    class DropsMidStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"replacement starts"
+            raise httpx.ReadError("connection lost")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=DropsMidStream())
+
+    destination = tmp_path / "existing.pdf"
+    destination.write_bytes(b"valuable original")
+
+    with pytest.raises(NetworkError):  # noqa: SIM117 — the with blocks nest by design
+        with mock_client(handler).open_file(123) as stream:
+            stream.save(destination)
+
+    assert destination.read_bytes() == b"valuable original"
+    assert list(tmp_path.iterdir()) == [destination]
+
+
+def test_save_successfully_replaces_existing_destination(tmp_path):
+    destination = tmp_path / "existing.pdf"
+    destination.write_bytes(b"old bytes")
+
+    with stream_client(b"complete replacement").open_file(123) as stream:
+        stream.save(destination)
+
+    assert destination.read_bytes() == b"complete replacement"
+    assert list(tmp_path.iterdir()) == [destination]
+
+
 def test_a_mid_body_drop_raises_network_error_inside_the_with_block(tmp_path):
     # httpx must not leak: a caller catching NetworkError around save() has
     # to see it there, not only once the with block exits.

@@ -12,6 +12,8 @@ it.
 """
 
 import mimetypes
+import os
+import tempfile
 from collections.abc import Iterator
 from email.message import Message
 from pathlib import Path, PurePosixPath
@@ -115,9 +117,11 @@ class FileStream:
         stream's ``suffix`` is in scope inside the ``with`` block, so a
         caller who wants an extension composes it into the path themselves.
 
-        Written in chunks, so large files never load fully into memory. No
-        file is left at ``destination`` if the write fails — including when
-        the connection drops partway through. Valid only inside the ``with``
+        Written in chunks to a sibling temporary file, so large files never
+        load fully into memory and a completed download replaces
+        ``destination`` atomically. If writing fails — including when the
+        connection drops partway through — an existing destination is left
+        untouched and no partial file remains. Valid only inside the ``with``
         block that yielded this stream, and only once: the body cannot be
         rewound.
 
@@ -138,13 +142,22 @@ class FileStream:
             NetworkError: If the connection fails partway through the body.
             OSError: If ``destination`` cannot be written.
         """
+        temporary_path: Path | None = None
         try:
-            with destination.open("wb") as file:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                dir=destination.parent,
+                prefix=f".{destination.name}.",
+                delete=False,
+            ) as file:
+                temporary_path = Path(file.name)
                 for chunk in self.iter_bytes():
                     file.write(chunk)
-        except Exception:
-            destination.unlink(missing_ok=True)
-            raise
+            os.replace(temporary_path, destination)
+            temporary_path = None
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
         return destination
 
     @property
