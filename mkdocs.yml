@@ -1,6 +1,6 @@
 site_name: libcivicclerk
 site_description: Unofficial read-only Python client for the CivicClerk public meeting-portal API
-site_url: https://chapinb.github.io/libcivicclerk/
+site_url: https://chapinb.com/libcivicclerk/
 repo_url: https://github.com/chapinb/libcivicclerk
 repo_name: chapinb/libcivicclerk
 
