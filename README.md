@@ -103,7 +103,14 @@ default; suitable for a scheduled CI job).
 uv sync                  # install with dev tools
 uv run pytest            # tests (live suite excluded)
 prek run --all-files     # lint, format, type check (what CI enforces)
+
+uv run --group docs mkdocs serve   # preview the docs site locally
 ```
+
+Documentation lives at
+[chapinb.github.io/libcivicclerk](https://chapinb.github.io/libcivicclerk/).
+Pushing a `v*` tag deploys that version's docs with a version selector
+(GitHub Pages must be set to serve the `gh-pages` branch once).
 
 ## Disclaimer
 

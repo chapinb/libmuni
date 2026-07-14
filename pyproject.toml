@@ -39,6 +39,7 @@ dev = [
     "ty>=0.0.59",
 ]
 docs = [
+    "mike>=2.2.0",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.6",
 ]

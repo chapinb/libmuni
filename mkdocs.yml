@@ -24,6 +24,10 @@ theme:
 exclude_docs: |
   specs/
 
+extra:
+  version:
+    provider: mike
+
 nav:
   - Home: index.md
   - Usage guide: usage.md
