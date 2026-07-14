@@ -51,8 +51,8 @@ class UnknownTenantError(APIStatusError):
 class NotFoundError(APIStatusError):
     """The id-parameterized resource does not exist for this tenant.
 
-    Raised by id-parameterized lookups (such as ``CivicClerkClient.
-    get_agenda``) when the requested id has no data — unlike
+    Raised by id-parameterized lookups (such as
+    ``CivicClerkClient.get_agenda``) when the requested id has no data — unlike
     ``UnknownTenantError``, this says nothing about whether the tenant
     itself exists. The API is inconsistent about how it signals this: some
     invalid ids answer with a plain 404, while others answer 200 with an

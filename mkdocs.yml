@@ -18,7 +18,6 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
   features:
-    - navigation.sections
     - content.code.copy
 
 exclude_docs: |
@@ -35,7 +34,6 @@ nav:
   - Architecture decisions: decisions.md
 
 markdown_extensions:
-  - admonition
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.snippets:

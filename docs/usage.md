@@ -84,8 +84,10 @@ Two id namespaces exist, and they must not be mixed:
 - `PublishedFile.file_id` (meeting-level documents) → `download_file`
 - `AgendaAttachment` (agenda-item documents) → `download_attachment`
 
-An attachment id passed to `download_file` will not error cleanly — it
-may download the wrong document. Always go through the matching method.
+The namespaces overlap, so an attachment id passed to `download_file`
+usually raises `NotFoundError` — but when the number happens to exist as a
+file id too, it silently downloads the wrong document. Always go through
+the matching method.
 
 Practical limits inherited from the API:
 
@@ -102,15 +104,9 @@ Practical limits inherited from the API:
 
 ## Errors
 
-Everything the library raises subclasses `CivicClerkError`:
-
-| Error | Meaning |
-| --- | --- |
-| `UnknownTenantError` | The tenant subdomain doesn't exist (typo?) |
-| `NotFoundError` | An id-parameterized lookup (agenda, file) has no data |
-| `APIStatusError` | Any other HTTP error status |
-| `NetworkError` | DNS, connection, or timeout failure |
-| `PayloadError` | A response body the library can't use |
+Everything the library raises subclasses `CivicClerkError` — see the
+[API reference](api.md#errors) for the full taxonomy and when each error
+is raised.
 
 Absent optional data is never an error: an event with no published
 materials has an empty `published_files`, not an exception. A blanket

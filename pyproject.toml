@@ -1,7 +1,7 @@
 [project]
 name = "libcivicclerk"
 version = "0.1.0"
-description = "Unofficial Read-only Python client for the CivicClerk public meeting-portal API"
+description = "Unofficial read-only Python client for the CivicClerk public meeting-portal API"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
