@@ -35,7 +35,7 @@ def client():
 @pytest.fixture(scope="module")
 def recent_events(client):
     today = dt.date.today()
-    return client.get_events(from_date=today - dt.timedelta(days=45), to_date=today)
+    return list(client.iter_events(from_date=today - dt.timedelta(days=45), to_date=today))
 
 
 def test_event_categories_parse(client):

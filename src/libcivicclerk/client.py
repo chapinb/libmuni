@@ -63,21 +63,22 @@ class CivicClerkClient:
         payload = self._get_json("/EventCategories")
         return [EventCategory.from_api(entry) for entry in payload.get("value", [])]
 
-    def get_events(
+    def iter_events(
         self,
         *,
         category_id: int | None = None,
         from_date: dt.date | None = None,
         to_date: dt.date | None = None,
-    ) -> list[Event]:
-        """Fetch the tenant's meetings, oldest first.
+    ) -> Iterator[Event]:
+        """Iterate the tenant's meetings, oldest first, fetching lazily.
 
-        The API serves events in pages of 15; this method follows the
-        continuation links and returns the complete result (one HTTP
-        request per page). With no filters that is the tenant's entire
-        meeting history — potentially thousands of events and hundreds of
-        requests — so pass a date range for anything interactive. For lazy
-        consumption of large ranges, use :meth:`iter_events`.
+        The API serves events in pages of 15; pages are fetched on demand
+        (one HTTP request per page), so consuming only the first few
+        events costs only the first request. Collect with ``list(...)``
+        when you need the complete result. With no filters that is the
+        tenant's entire meeting history — potentially thousands of events
+        and hundreds of requests — so pass a date range for anything
+        interactive.
 
         Args:
             category_id: Only events of this category (board/committee) —
@@ -88,7 +89,7 @@ class CivicClerkClient:
                 matching the API's datetime semantics (see
                 :class:`Event`).
 
-        Returns:
+        Yields:
             Matching events, ordered by start time ascending.
 
         Raises:
@@ -96,24 +97,6 @@ class CivicClerkClient:
             APIStatusError: If the API responds with an error status.
             NetworkError: If the request fails at the network level.
             PayloadError: If a response body is not usable.
-        """
-        return list(self.iter_events(category_id=category_id, from_date=from_date, to_date=to_date))
-
-    def iter_events(
-        self,
-        *,
-        category_id: int | None = None,
-        from_date: dt.date | None = None,
-        to_date: dt.date | None = None,
-    ) -> Iterator[Event]:
-        """Iterate the tenant's meetings, oldest first, fetching lazily.
-
-        Same filters and errors as :meth:`get_events`; pages of 15 are
-        fetched on demand, so consuming only the first few events costs
-        only the first request.
-
-        Yields:
-            Matching events, ordered by start time ascending.
         """
         filters = []
         if category_id is not None:

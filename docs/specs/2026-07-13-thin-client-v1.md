@@ -207,6 +207,10 @@ Developer stories (the library surface):
   `get_file_text(file_id)` returns `str | None` (None on empty body),
   documented as best-effort; downloads must not use this endpoint for
   existence checks.
+- 2026-07-14: Post-v1 feedback review: `get_events` removed — it was
+  `list(iter_events(...))` with no added behavior; one canonical listing
+  method keeps the surface minimal pre-1.0. Callers collect with
+  `list(...)`.
 
 ## Deferred
 

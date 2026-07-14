@@ -13,7 +13,7 @@ from libcivicclerk import Event
 def test_client_returns_typed_events():
     client = recording_client(load_fixture("events.json"), [])
 
-    events = client.get_events()
+    events = list(client.iter_events())
 
     assert [e.name for e in events] == [
         "Town Council Regular Meeting",
@@ -28,7 +28,7 @@ def test_event_start_is_naive_local_wall_clock_time():
     # The API stamps a Z suffix on what is actually local wall-clock time
     # (evening meetings arrive as 19:00:00Z), so the library must not claim
     # UTC: start is a naive datetime carrying the local reading.
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     assert events[0].starts_at == dt.datetime(2026, 8, 3, 19, 0)
     assert events[0].starts_at.tzinfo is None
@@ -38,7 +38,7 @@ def test_event_start_is_naive_local_wall_clock_time():
 
 
 def test_event_exposes_physical_location():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     location = events[0].location
     assert location is not None
@@ -49,21 +49,21 @@ def test_event_exposes_physical_location():
 
 
 def test_event_exposes_virtual_meeting_url():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     assert events[0].virtual_meeting_url == "https://exampletown-gov.zoom.us/j/1234567890"
     assert events[1].virtual_meeting_url is None  # empty string -> None
 
 
 def test_event_exposes_duration_when_set():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     assert events[0].duration == dt.timedelta(hours=2, minutes=30)
     assert events[2].duration is None  # the API's 0h0m means "not set"
 
 
 def test_event_exposes_recording_when_available():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     assert events[1].youtube_video_id == "dQw4w9WgXcQ"
     assert events[1].recording_url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -74,7 +74,7 @@ def test_event_exposes_recording_when_available():
 
 
 def test_event_exposes_published_files():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     files = events[0].published_files
     assert [f.file_type for f in files] == ["Agenda", "Agenda Packet"]
@@ -84,7 +84,7 @@ def test_event_exposes_published_files():
 
 
 def test_event_agenda_id_zero_means_no_agenda():
-    events = recording_client(load_fixture("events.json"), []).get_events()
+    events = list(recording_client(load_fixture("events.json"), []).iter_events())
 
     assert events[0].agenda_id == 7301
     assert events[2].agenda_id is None
@@ -93,19 +93,21 @@ def test_event_agenda_id_zero_means_no_agenda():
 # --- filtering: the request carries the caller's constraints ---
 
 
-def test_get_events_filters_by_category():
+def test_iter_events_filters_by_category():
     seen: list[httpx.Request] = []
-    recording_client({"value": []}, seen).get_events(category_id=12)
+    list(recording_client({"value": []}, seen).iter_events(category_id=12))
 
     assert seen[0].url.params["$filter"] == "categoryId eq 12"
 
 
-def test_get_events_filters_by_date_range():
+def test_iter_events_filters_by_date_range():
     seen: list[httpx.Request] = []
-    recording_client({"value": []}, seen).get_events(
-        category_id=12,
-        from_date=dt.date(2026, 7, 1),
-        to_date=dt.date(2026, 8, 1),
+    list(
+        recording_client({"value": []}, seen).iter_events(
+            category_id=12,
+            from_date=dt.date(2026, 7, 1),
+            to_date=dt.date(2026, 8, 1),
+        )
     )
 
     assert seen[0].url.params["$filter"] == (
@@ -137,7 +139,7 @@ def event_stub(event_id: int) -> dict:
     return {"id": event_id, "eventDate": "2026-07-01T19:00:00Z"}
 
 
-def test_get_events_follows_next_links_to_completion():
+def test_iter_events_follows_next_links_to_completion():
     pages = [
         {"value": [event_stub(1), event_stub(2)]},
         {"value": [event_stub(3)]},
@@ -146,7 +148,7 @@ def test_get_events_follows_next_links_to_completion():
     seen: list[str] = []
     client = paged_client(pages, seen)
 
-    events = client.get_events()
+    events = list(client.iter_events())
 
     assert [e.id for e in events] == [1, 2, 3, 4]
     assert len(seen) == 3

@@ -36,10 +36,12 @@ with CivicClerkClient("exampletown") as client:
         print(category.id, category.name)
 
     # This month's meetings for one board
-    events = client.get_events(
-        category_id=12,
-        from_date=dt.date.today(),
-        to_date=dt.date.today() + dt.timedelta(days=31),
+    events = list(
+        client.iter_events(
+            category_id=12,
+            from_date=dt.date.today(),
+            to_date=dt.date.today() + dt.timedelta(days=31),
+        )
     )
     for event in events:
         print(event.starts_at, event.name)

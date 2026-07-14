@@ -34,6 +34,6 @@ ValueError; inverted/far-future date windows → clean `[]`.
 - Event datetimes are naive local wall-clock by design — `tzinfo is None`
   is correct, not a bug.
 - `get_file_text` returning None is within contract (best-effort upstream).
-- An unfiltered `get_events()` walks the tenant's ENTIRE history via
+- An unfiltered `iter_events()` walks the tenant's ENTIRE history via
   pagination (thousands of events, hundreds of requests) — always verify
   with a date window.
