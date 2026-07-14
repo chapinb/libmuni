@@ -28,6 +28,9 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/chapinb/libcivicclerk"
 
+[project.scripts]
+civicclerk = "libcivicclerk.cli:main"
+
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
 build-backend = "uv_build"
