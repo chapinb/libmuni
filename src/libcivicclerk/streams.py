@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 
 import httpx
 
-from libcivicclerk.errors import NetworkError, NotFoundError
+from libcivicclerk.errors import NotFoundError, _network_error
 
 
 class FileStream:
@@ -48,8 +48,8 @@ class FileStream:
         The API answers an unavailable file with HTTP 200 and a 0-byte
         body, so emptiness has to be settled before the caller is handed
         the stream — otherwise a caller who only reads the headers would
-        write a 0-byte file. ``Content-Length: 0`` is decisive; when the
-        header is absent, the only way to know is to read.
+        write a 0-byte file. A declared size of zero is decisive; when the
+        server declares no size, the only way to know is to read.
 
         The chunk is buffered rather than discarded, and ``iter_bytes``
         replays it as the body's first chunk.
@@ -57,12 +57,27 @@ class FileStream:
         Raises:
             NotFoundError: If the body is empty.
         """
-        if self._response.headers.get("content-length") == "0":
+        if self.size == 0:
             raise self._unavailable()
-        for chunk in self._chunks:
+        while (chunk := self._next_chunk()) is not None:
             if chunk:
                 return chunk
         raise self._unavailable()
+
+    def _next_chunk(self) -> bytes | None:
+        """Return the next chunk off the wire, or ``None`` at the end of the body.
+
+        The one place the body is read, so the one place a transport
+        failure while reading it becomes a ``NetworkError`` — whether it
+        strikes on the first chunk (inside ``__init__``) or a later one
+        (inside ``iter_bytes``). Reading the response is this object's job;
+        the client only translates failures that happen before the response
+        exists.
+        """
+        try:
+            return next(self._chunks, None)
+        except httpx.TransportError as exc:
+            raise _network_error(str(self._response.request.url), exc) from exc
 
     def _unavailable(self) -> NotFoundError:
         """The error for an empty body — the API's way of saying "no such file"."""
@@ -88,13 +103,9 @@ class FileStream:
         if self._buffered is not None:
             first, self._buffered = self._buffered, None
             yield first
-        try:
-            for chunk in self._chunks:
-                if chunk:
-                    yield chunk
-        except httpx.TransportError as exc:
-            url = self._response.request.url
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
+        while (chunk := self._next_chunk()) is not None:
+            if chunk:
+                yield chunk
 
     def save(self, destination: Path) -> Path:
         """Write the body to exactly ``destination`` and return it.
@@ -191,11 +202,17 @@ class FileStream:
 
     @property
     def size(self) -> int | None:
-        """The body's size in bytes, from ``Content-Length``.
+        """The size in bytes of the body ``iter_bytes`` and ``save`` deliver.
 
-        ``None`` when the server streams the response chunked and so does
-        not declare a length up front.
+        Read from ``Content-Length``. ``None`` when the server declares no
+        length — because it streams the response chunked, or because it
+        compressed the body: ``Content-Length`` then measures the bytes on
+        the wire, while the bytes handed to the caller are the decoded ones,
+        and reporting the former would be a number describing a different
+        body. A size is either true of what you receive or absent.
         """
+        if "content-encoding" in self._response.headers:
+            return None
         header = self._response.headers.get("content-length")
         if header is None:
             return None

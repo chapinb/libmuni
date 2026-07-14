@@ -7,6 +7,8 @@ path treats an empty body as "unavailable" rather than trusting the status
 code alone.
 """
 
+import gzip
+
 import httpx
 import pytest
 from conftest import mock_client
@@ -35,14 +37,37 @@ def recording_bytes_client(body: bytes, seen_requests: list[httpx.Request]) -> C
     return mock_client(handler)
 
 
+def redirecting_client(*, follow_redirects: bool) -> CivicClerkClient:
+    """Client whose transport answers the API with a 302 to blob storage."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host.endswith("api.civicclerk.com"):
+            return httpx.Response(
+                302, headers={"location": "https://exampletown.blob.core.windows.net/f.pdf?sig=a"}
+            )
+        return httpx.Response(200, content=b"%PDF-1.4 redirected bytes")
+
+    return CivicClerkClient(
+        "exampletown",
+        http_client=httpx.Client(
+            transport=httpx.MockTransport(handler), follow_redirects=follow_redirects
+        ),
+        min_request_interval=0,
+    )
+
+
 def test_owned_client_follows_redirects():
     # File streams are commonly served as a redirect to storage, so the
     # client the library creates for itself must follow them.
-    client = CivicClerkClient("exampletown")
-    try:
+    with CivicClerkClient("exampletown") as client:
         assert client._http.follow_redirects is True
-    finally:
-        client.close()
+
+
+def test_following_a_redirect_streams_the_bytes_it_lands_on():
+    # What that policy buys: the body comes from the storage host the
+    # redirect points at, not from the 302 itself.
+    with redirecting_client(follow_redirects=True).open_file(123) as stream:
+        assert b"".join(stream.iter_bytes()) == b"%PDF-1.4 redirected bytes"
 
 
 # --- download_file: meeting-level files by PublishedFile.file_id ---
@@ -165,6 +190,50 @@ def test_open_file_raises_not_found_on_404():
 
     with pytest.raises(NotFoundError), client.open_file(999999):
         pass  # pragma: no cover — entering the stream must raise
+
+
+def test_a_drop_before_any_bytes_arrive_raises_network_error(tmp_path):
+    # The first chunk is read inside the stream's __init__, so a connection
+    # that dies before delivering a single byte fails on a different code
+    # path than a mid-body drop. Both must surface as NetworkError.
+    class DropsImmediately(httpx.SyncByteStream):
+        def __iter__(self):
+            raise httpx.ReadError("connection lost")
+            yield  # pragma: no cover — unreachable, makes this a generator
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=DropsImmediately())
+
+    destination = tmp_path / "never-arrived.pdf"
+
+    with pytest.raises(NetworkError), mock_client(handler).open_file(123):
+        pass  # pragma: no cover — entering the stream must raise
+
+    assert not destination.exists()
+
+
+def test_size_is_none_when_the_body_arrives_compressed():
+    # Content-Length describes the bytes on the wire; iter_bytes and save
+    # deliver the decoded ones. Reporting the compressed length as "size"
+    # would be a number that describes different bytes than the caller gets,
+    # so report nothing rather than something wrong.
+    body = b"%PDF-1.4 " + b"x" * 5000
+    packed = gzip.compress(body)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=packed,
+            headers={
+                "content-type": "application/pdf",
+                "content-encoding": "gzip",
+                "content-length": str(len(packed)),
+            },
+        )
+
+    with mock_client(handler).open_file(123) as stream:
+        assert stream.size is None
+        assert b"".join(stream.iter_bytes()) == body
 
 
 def test_open_file_raises_not_found_on_entry_when_content_length_is_zero():

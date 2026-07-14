@@ -23,6 +23,16 @@ class NetworkError(CivicClerkError):
     """
 
 
+def _network_error(url: str, exc: Exception) -> NetworkError:
+    """Build the ``NetworkError`` for a transport failure against ``url``.
+
+    The single place the library phrases a network failure — a request can
+    die before the response arrives or partway through its body, and both
+    must read the same way to a caller.
+    """
+    return NetworkError(f"request to {url} failed: {exc}")
+
+
 class APIStatusError(CivicClerkError):
     """The API answered with an error status code.
 
