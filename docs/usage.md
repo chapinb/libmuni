@@ -122,7 +122,7 @@ Both yield a `FileStream`, valid only inside the `with` block.
 for file in event.published_files:
     with client.open_file(file.file_id) as stream:
         # stream.content_type -> "application/pdf" (or None)
-        # stream.size         -> bytes, or None when the server streams chunked
+        # stream.size         -> bytes you will receive, or None if undeclared
         stream.save(downloads / f"{file.name}{stream.suffix or ''}")
 ```
 

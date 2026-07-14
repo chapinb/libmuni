@@ -44,7 +44,7 @@ carry no extension, and the response is the only place the extension lives.
 | --- | --- |
 | `content_type` | Media type, parameters stripped, e.g. `application/pdf`. `None` if unsent. |
 | `suffix` | Extension with the leading dot, from `Content-Disposition`, else the content type, else the URL path. `None` when there is no basis — never a guessed `.pdf`. |
-| `size` | `Content-Length` in bytes; `None` when the server streams chunked. |
+| `size` | Size in bytes of the body you will receive; `None` when the server declares none (chunked, or a compressed body whose `Content-Length` describes the wire, not the bytes). |
 | `iter_bytes()` | The body in chunks. Single pass, no disk. |
 | `save(destination)` | Writes **exactly** `destination` and returns it — nothing appended or renamed. |
 
