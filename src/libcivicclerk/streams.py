@@ -11,7 +11,10 @@ live HTTP response and is only valid inside the ``with`` block that yielded
 it.
 """
 
+import mimetypes
 from collections.abc import Iterator
+from email.message import Message
+from pathlib import PurePosixPath
 
 import httpx
 
@@ -100,6 +103,53 @@ class FileStream:
         if not header:
             return None
         return header.split(";", 1)[0].strip().lower() or None
+
+    @property
+    def suffix(self) -> str | None:
+        """The file's extension, leading dot included, e.g. ``.pdf``.
+
+        Derived from the response, never guessed from the endpoint, and
+        ``None`` when the response gives no basis for one — the API serves
+        mostly PDFs, but assuming ``.pdf`` is silently wrong the day a
+        tenant publishes something else. The bytes are not sniffed.
+
+        Three sources, in order, because no single one covers both
+        endpoints: the ``Content-Disposition`` filename (meeting files send
+        one, and although the name is only the file's id restated, its
+        extension is truthful); then the content type; then the extension
+        on the request URL's path (which is what rescues attachments, whose
+        signed blob URLs end in a real extension but carry no
+        ``Content-Disposition``).
+
+        Pair it with the caller-facing name — ``PublishedFile.name`` or
+        ``AgendaAttachment.file_name``, neither of which has an extension —
+        to compose a filename before calling ``save``.
+        """
+        return (
+            self._suffix_from_disposition()
+            or self._suffix_from_content_type()
+            or self._suffix_from_url()
+        )
+
+    def _suffix_from_disposition(self) -> str | None:
+        """The extension of the ``Content-Disposition`` filename, if it sent one."""
+        header = self._response.headers.get("content-disposition")
+        if not header:
+            return None
+        # Message parses the header's quoting and encoding rules for us.
+        parsed = Message()
+        parsed["content-disposition"] = header
+        filename = parsed.get_filename()
+        return PurePosixPath(filename).suffix if filename else None
+
+    def _suffix_from_content_type(self) -> str | None:
+        """The extension the content type maps to, if it maps to one."""
+        content_type = self.content_type
+        return mimetypes.guess_extension(content_type) if content_type else None
+
+    def _suffix_from_url(self) -> str | None:
+        """The extension on the request URL's path, if it has one."""
+        return PurePosixPath(self._response.request.url.path).suffix or None
 
     @property
     def size(self) -> int | None:

@@ -216,6 +216,72 @@ def test_open_file_raises_not_found_on_entry_when_chunked_body_is_empty():
         pass  # pragma: no cover — entering the stream must raise
 
 
+# --- suffix: the extension comes from the response, never from a guess ---
+
+
+def headers_client(headers: dict[str, str], *, body: bytes = b"body") -> CivicClerkClient:
+    """Client answering with exactly ``headers`` — no content-type unless given."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body, headers=headers)
+
+    return mock_client(handler)
+
+
+def test_suffix_comes_from_the_content_disposition_filename():
+    # What a real meeting file sends: the filename is only the numeric id
+    # restated, but its extension is truthful.
+    client = headers_client(
+        {"content-type": "application/pdf", "content-disposition": "attachment; filename=123.pdf"}
+    )
+
+    with client.open_file(123) as stream:
+        assert stream.suffix == ".pdf"
+
+
+def test_suffix_prefers_the_content_disposition_filename_over_the_content_type():
+    client = headers_client(
+        {"content-type": "application/pdf", "content-disposition": 'attachment; filename="m.docx"'}
+    )
+
+    with client.open_file(123) as stream:
+        assert stream.suffix == ".docx"
+
+
+def test_suffix_falls_back_to_the_content_type():
+    client = headers_client({"content-type": "application/pdf"})
+
+    with client.open_file(123) as stream:
+        assert stream.suffix == ".pdf"
+
+
+def test_suffix_falls_back_to_the_url_path():
+    # What a real agenda attachment sends: no content-disposition, a type
+    # nothing can be guessed from, but a blob URL whose GUID path still ends
+    # in a real extension.
+    attachment = AgendaAttachment(
+        attachment_id=1,
+        file_name="Minutes",
+        download_url=(
+            "https://exampletown.blob.core.windows.net/stream/"
+            "0f9a1b2c-3d4e-5f60-7182-93a4b5c6d7e8.pdf?sig=abc"
+        ),
+    )
+    client = headers_client({"content-type": "application/x-unrecognized-type"})
+
+    with client.open_attachment(attachment) as stream:
+        assert stream.suffix == ".pdf"
+
+
+def test_suffix_is_none_when_nothing_gives_a_basis_for_one():
+    # No extension beats guessing .pdf and being silently wrong.
+    client = headers_client({})
+
+    with client.open_file(123) as stream:
+        assert stream.content_type is None
+        assert stream.suffix is None
+
+
 # --- open_attachment: the same, for an attachment's signed blob URL ---
 
 

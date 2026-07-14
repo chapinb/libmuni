@@ -179,7 +179,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   no `Content-Length` yields every byte, first chunk included. Acceptance:
   bytes collected from `iter_bytes` equal the full body for both
   `Content-Length` and chunked responses. Touches `streams.py`.
-- [ ] **`suffix`** — ordered derivation from `Content-Disposition` filename,
+- [x] **`suffix`** — ordered derivation from `Content-Disposition` filename,
   then content type, then URL path; `None` when all fail. Acceptance: a
   meeting-file response resolves `.pdf` from its `filename=<id>.pdf`, an
   attachment-shaped response with only a GUID `.pdf` URL and a content type
