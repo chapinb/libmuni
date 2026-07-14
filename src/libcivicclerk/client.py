@@ -22,10 +22,10 @@ import httpx
 
 from libcivicclerk.errors import (
     APIStatusError,
-    NetworkError,
     NotFoundError,
     PayloadError,
     UnknownTenantError,
+    _network_error,
 )
 from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
 from libcivicclerk.streams import FileStream
@@ -245,18 +245,13 @@ class CivicClerkClient:
                 (including an expired signed URL).
             NetworkError: If the request fails at the network level.
         """
-        return self._open_stream(self._require_download_url(attachment))
-
-    @staticmethod
-    def _require_download_url(attachment: AgendaAttachment) -> str:
-        """Return the attachment's ``download_url``, or explain why there isn't one."""
         if attachment.download_url is None:
             raise ValueError(
                 f"attachment {attachment.attachment_id} has no download_url; "
                 "check attachment.download_url is not None (and attachment.is_link "
                 "is False) before calling download_attachment"
             )
-        return attachment.download_url
+        return self._open_stream(attachment.download_url)
 
     @contextmanager
     def _open_stream(
@@ -268,9 +263,11 @@ class CivicClerkClient:
         """Stream a GET response, yielding it as a ``FileStream``.
 
         The request funnel for every download path: paces the request,
-        translates failures into this library's typed errors (including any
-        raised while the caller consumes the body inside the ``with``
-        block), and closes the response on exit.
+        translates failures that happen *before* the response exists
+        (connect, TLS, timeout) into this library's typed errors, and closes
+        the response on exit. Once the response exists, reading its body —
+        and translating a failure partway through it — belongs to
+        ``FileStream``, which owns the bytes.
 
         Args:
             url: Absolute URL to GET.
@@ -283,7 +280,7 @@ class CivicClerkClient:
                 self._raise_for_error(response, url, not_found_error)
                 yield FileStream(response)
         except httpx.TransportError as exc:
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
+            raise _network_error(url, exc) from exc
 
     def download_file(self, file_id: int, destination: Path) -> Path:
         """Download a meeting-level file to ``destination``.
@@ -455,7 +452,7 @@ class CivicClerkClient:
         try:
             response = self._http.get(url, params=params)
         except httpx.TransportError as exc:
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
+            raise _network_error(url, exc) from exc
         self._raise_for_error(response, url, not_found_error)
         return response
 
