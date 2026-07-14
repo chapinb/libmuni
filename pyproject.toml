@@ -43,6 +43,7 @@ dev = [
 ]
 docs = [
     "mike>=2.2.0",
+    "mkdocs-llmstxt>=0.4",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.6",
 ]

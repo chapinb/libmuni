@@ -53,3 +53,27 @@ plugins:
             members_order: source
             separate_signature: true
             show_signature_annotations: true
+  # Must follow mkdocstrings: llmstxt converts the *rendered* HTML back to
+  # markdown, which is what turns the API reference into real signatures
+  # instead of `:::` directives.
+  - llmstxt:
+      # site_url is the domain root, but mike serves the built docs under a
+      # version alias — without this every generated link would 404.
+      base_url: https://chapinb.github.io/libcivicclerk/latest/
+      full_output: llms-full.txt
+      markdown_description: >
+        Unofficial read-only Python client for the CivicClerk public
+        meeting-portal API. A thin typed client: every public method maps to
+        one HTTP request, and models are frozen dataclasses with a `raw`
+        escape hatch. No authentication, no write operations, no async
+        client.
+      sections:
+        Getting started:
+          - index.md: Install, quickstart, and what the library is for.
+        Guides:
+          - usage.md: Datetimes, request pacing, listing meetings,
+              downloads, and errors.
+          - cli.md: The `civicclerk` command that mirrors the library.
+        Reference:
+          - api.md: Every public class and method, with signatures.
+          - decisions.md: Why the library is shaped the way it is.
