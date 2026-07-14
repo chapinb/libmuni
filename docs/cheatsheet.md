@@ -14,9 +14,9 @@ with CivicClerkClient("exampletown") as client:  # the portal subdomain
 ```
 
 `CivicClerkClient(tenant, *, http_client=None, min_request_interval=0.25)`.
-Use it as a context manager, or call `close()` yourself. Every method below
-maps to exactly one HTTP request — except `iter_events`, which makes one per
-page it is asked for.
+Use it as a context manager, or call `close()` yourself. Each fetching method
+below costs exactly one HTTP request — except `iter_events`, which spends one
+per page it is asked for, and `close()`, which talks to nobody.
 
 | Method | Purpose |
 | --- | --- |
@@ -26,7 +26,9 @@ page it is asked for.
 | `download_file(file_id, destination)` | Save a meeting-level document. |
 | `download_attachment(attachment, destination)` | Save an agenda-item document. Takes the `AgendaAttachment`, not an id. |
 | `get_file_text(file_id)` | Upstream's best-effort text extraction, or `None`. |
-| `close()` | Release the HTTP connection pool. |
+| `close()` | Release the HTTP connection pool. No request. |
+
+The package also exports `__version__`, the installed library version.
 
 ## The models
 

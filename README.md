@@ -95,10 +95,11 @@ materials has an empty `published_files`, not an exception.
 
 ## Documentation
 
-Full docs: <https://chapinb.github.io/libcivicclerk/latest/>. The
-[cheat sheet](https://chapinb.github.io/libcivicclerk/latest/cheatsheet/)
-is the fastest way in — the whole public surface, the traps, and what the
-library deliberately does not do.
+The [cheat sheet](https://chapinb.github.io/libcivicclerk/latest/cheatsheet/)
+is the fastest way into the
+[full documentation](https://chapinb.github.io/libcivicclerk/latest/) — the
+whole public surface, the traps, and what the library deliberately does not
+do.
 
 Using an LLM or coding agent? Hand it
 [llms-full.txt](https://chapinb.github.io/libcivicclerk/latest/llms-full.txt),
