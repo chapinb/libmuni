@@ -26,7 +26,9 @@ exclude_docs: |
 
 nav:
   - Home: index.md
+  - Usage guide: usage.md
   - API reference: api.md
+  - Architecture decisions: decisions.md
 
 markdown_extensions:
   - admonition
