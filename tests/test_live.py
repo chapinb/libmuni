@@ -80,6 +80,27 @@ def test_download_and_text_extraction(client, recent_events, tmp_path):
     assert text is None or isinstance(text, str)
 
 
+def test_open_file_reports_a_content_type(client, recent_events, tmp_path):
+    # The contract the streaming surface rests on: a real published file
+    # tells us its type before we name it. If upstream ever stops sending
+    # one, suffix silently goes None and this is where we find out.
+    with_files = [event for event in recent_events if event.published_files]
+    if not with_files:
+        pytest.skip("no recent event with published files")
+
+    file = with_files[0].published_files[0]
+    name = file.name or "document"
+
+    with client.open_file(file.file_id) as stream:
+        assert stream.content_type, "upstream stopped sending a content type"
+        suffix = stream.suffix
+        assert suffix, "no basis for an extension — naming is now a guess"
+        saved = stream.save(tmp_path / f"{name}{suffix}")
+
+    assert saved.stat().st_size > 500
+    assert saved.suffix == suffix
+
+
 def test_nonexistent_agenda_raises_not_found(client):
     with pytest.raises(NotFoundError):
         client.get_agenda(999_999_999)
