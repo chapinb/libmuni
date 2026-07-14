@@ -23,12 +23,33 @@ per page it is asked for, and `close()`, which talks to nobody.
 | `get_event_categories()` | The tenant's boards and committees. |
 | `iter_events(*, category_id=None, from_date=None, to_date=None)` | Meetings, oldest first, fetched lazily one page at a time. |
 | `get_agenda(agenda_id)` | One meeting's agenda tree. |
-| `download_file(file_id, destination)` | Save a meeting-level document. |
+| `download_file(file_id, destination)` | Save a meeting-level document to a path you already know. |
 | `download_attachment(attachment, destination)` | Save an agenda-item document. Takes the `AgendaAttachment`, not an id. |
+| `open_file(file_id)` | Context manager yielding a `FileStream` — read the type before naming the file. |
+| `open_attachment(attachment)` | The same, for an attachment's signed URL. `ValueError` if it has no `download_url`. |
 | `get_file_text(file_id)` | Upstream's best-effort text extraction, or `None`. |
 | `close()` | Release the HTTP connection pool. No request. |
 
 The package also exports `__version__`, the installed library version.
+
+## The stream
+
+`FileStream` is what `open_file` and `open_attachment` yield, and the one
+mutable, lifetime-bound object here: it wraps a live response and is valid
+only inside its `with` block. Use it when the filename depends on the file's
+type — the models' names (`PublishedFile.name`, `AgendaAttachment.file_name`)
+carry no extension, and the response is the only place the extension lives.
+
+| Member | Meaning |
+| --- | --- |
+| `content_type` | Media type, parameters stripped, e.g. `application/pdf`. `None` if unsent. |
+| `suffix` | Extension with the leading dot, from `Content-Disposition`, else the content type, else the URL path. `None` when there is no basis — never a guessed `.pdf`. |
+| `size` | `Content-Length` in bytes; `None` when the server streams chunked. |
+| `iter_bytes()` | The body in chunks. Single pass, no disk. |
+| `save(destination)` | Writes **exactly** `destination` and returns it — nothing appended or renamed. |
+
+Opening a stream for an unavailable file raises `NotFoundError` from the
+`with` statement itself, not partway through the body.
 
 ## The models
 

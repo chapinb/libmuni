@@ -196,7 +196,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
 - [x] **Reimplement `download_file` / `download_attachment` on the context
   managers**, retiring `_stream_to_file`. Acceptance: the existing download
   tests pass unchanged. Touches `client.py`.
-- [ ] **Export and document** — `FileStream` in `__all__`, a streaming section
+- [x] **Export and document** — `FileStream` in `__all__`, a streaming section
   in `usage.md`, the new methods in `cheatsheet.md`, an ADR entry in
   `docs/decisions.md`, and a live contract test asserting a real published file
   reports a content type. Touches `__init__.py`, `docs/`, `tests/test_live.py`.

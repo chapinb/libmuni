@@ -107,6 +107,48 @@ Practical limits inherited from the API:
 - `get_file_text` is best-effort upstream text extraction: `None` means
   the API returned no text, not that the document has none.
 
+## Naming a file you have not downloaded yet
+
+`download_file` and `download_attachment` need a destination path before the
+request goes out — but the only authoritative source for a file's type is the
+response, and `HEAD` is rejected, so there is no way to ask ahead of time.
+Hardcoding `.pdf` is right until the day a tenant publishes something else.
+
+`open_file` and `open_attachment` hand you the response at the one moment the
+information is actionable: after the headers arrive, before the body is read.
+Both yield a `FileStream`, valid only inside the `with` block.
+
+```python
+for file in event.published_files:
+    with client.open_file(file.file_id) as stream:
+        # stream.content_type -> "application/pdf" (or None)
+        # stream.size         -> bytes, or None when the server streams chunked
+        stream.save(downloads / f"{file.name}{stream.suffix or ''}")
+```
+
+The name is yours and the extension is the response's, and they meet inside
+the block: `PublishedFile.name` and `AgendaAttachment.file_name` carry no
+extension, and `stream.suffix` is derived from the response — the
+`Content-Disposition` filename, else the content type, else the URL path. It
+is `None` when the response gives no basis for one, rather than guessing.
+
+`save(destination)` writes **exactly** the path you hand it: an extensionless
+destination stays extensionless, and nothing is renamed or appended. It never
+leaves a partial file behind.
+
+To skip the disk entirely — streaming into a parser or an object store —
+consume the bytes directly:
+
+```python
+with client.open_attachment(attachment) as stream:
+    body = b"".join(stream.iter_bytes())  # or feed the chunks somewhere
+```
+
+The stream is single-pass and closes on exit; `iter_bytes` and `save` are
+invalid afterward. An unavailable file (the empty-200 trap above) raises
+`NotFoundError` from the `with` statement itself, so a caller that only
+inspects the headers can never write a 0-byte file.
+
 ## Errors
 
 Everything the library raises subclasses `CivicClerkError` — see the
