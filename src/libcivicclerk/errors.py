@@ -1,8 +1,8 @@
 """Typed errors raised by this library.
 
-Every error the library raises subclasses :class:`CivicClerkError`, so
+Every error the library raises subclasses ``CivicClerkError``, so
 ``except CivicClerkError`` catches anything that can go wrong in a call.
-Underlying :mod:`httpx` exceptions are attached as ``__cause__``.
+Underlying ``httpx`` exceptions are attached as ``__cause__``.
 
 Absent optional data is never an error: an event without materials yields
 empty lists and ``None`` fields, not an exception.
@@ -19,7 +19,7 @@ class NetworkError(CivicClerkError):
     """The request failed before a valid HTTP response arrived.
 
     Covers DNS failures, refused connections, timeouts, and TLS problems.
-    The originating :class:`httpx.TransportError` is the ``__cause__``.
+    The originating ``httpx.TransportError`` is the ``__cause__``.
     """
 
 
@@ -51,9 +51,9 @@ class UnknownTenantError(APIStatusError):
 class NotFoundError(APIStatusError):
     """The id-parameterized resource does not exist for this tenant.
 
-    Raised by id-parameterized lookups (such as :meth:`CivicClerkClient.
-    get_agenda`) when the requested id has no data — unlike
-    :class:`UnknownTenantError`, this says nothing about whether the tenant
+    Raised by id-parameterized lookups (such as ``CivicClerkClient.
+    get_agenda``) when the requested id has no data — unlike
+    ``UnknownTenantError``, this says nothing about whether the tenant
     itself exists. The API is inconsistent about how it signals this: some
     invalid ids answer with a plain 404, while others answer 200 with an
     empty/default payload (``id`` reset to ``0``, no items) — both are
@@ -71,7 +71,7 @@ class PayloadError(CivicClerkError):
 
 
 def require(raw: dict[str, Any], field_name: str, model_name: str) -> Any:
-    """Return ``raw[field_name]``, raising :class:`PayloadError` if absent.
+    """Return ``raw[field_name]``, raising ``PayloadError`` if absent.
 
     Args:
         raw: The API response object being parsed.

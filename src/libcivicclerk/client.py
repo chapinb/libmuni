@@ -3,10 +3,10 @@
 One client per tenant; every public method performs exactly one HTTP request
 — except listings, where the API serves fixed pages of 15 and the client
 follows continuation links (one request per page, stated in each docstring).
-Results are typed models from :mod:`libcivicclerk.models`. The client
+Results are typed models from ``libcivicclerk.models``. The client
 paces its requests politely by default (see ``min_request_interval``) but
 adds no caching or retries — callers own that policy, and can inject a
-configured :class:`httpx.Client` to apply it.
+configured ``httpx.Client`` to apply it.
 """
 
 import datetime as dt
@@ -41,10 +41,10 @@ class CivicClerkClient:
     Args:
         tenant: The tenant's subdomain — the ``exampletown`` in
             ``https://exampletown.api.civicclerk.com``.
-        http_client: Optional preconfigured :class:`httpx.Client` (for
+        http_client: Optional preconfigured ``httpx.Client`` (for
             timeouts, proxies, or transport injection in tests). When
             omitted, the client creates and owns one; either way, calling
-            :meth:`close` (or using ``with``) closes it. Unless the
+            ``close`` (or using ``with``) closes it. Unless the
             caller set a ``User-Agent`` header, it is replaced with the
             library's ``libcivicclerk/{version}`` identifier.
         min_request_interval: Minimum seconds between requests — the
@@ -109,12 +109,12 @@ class CivicClerkClient:
 
         Args:
             category_id: Only events of this category (board/committee) —
-                see :meth:`get_event_categories`.
+                see ``get_event_categories``.
             from_date: Only events on or after this date.
             to_date: Only events on or before this date. Dates are
                 interpreted on the tenant's local wall-clock timeline,
                 matching the API's datetime semantics (see
-                :class:`Event`).
+                ``Event``).
 
         Yields:
             Matching events, ordered by start time ascending.
@@ -150,11 +150,11 @@ class CivicClerkClient:
         """Fetch the structured agenda (sections, items, attachments) for a meeting.
 
         Args:
-            agenda_id: The agenda's id — see :attr:`Event.agenda_id`, which
+            agenda_id: The agenda's id — see ``Event.agenda_id``, which
                 is ``None`` when an event has no published agenda yet.
 
         Returns:
-            The agenda's full item tree; use :meth:`Agenda.walk_items` to
+            The agenda's full item tree; use ``Agenda.walk_items`` to
             flatten it.
 
         Raises:
@@ -184,11 +184,11 @@ class CivicClerkClient:
         resumed — a failed download must be retried from the start.
 
         Args:
-            file_id: A :attr:`PublishedFile.file_id` from
-                :attr:`Event.published_files`. This id lives in a different
-                namespace than :attr:`AgendaAttachment.attachment_id` —
+            file_id: A ``PublishedFile.file_id`` from
+                ``Event.published_files``. This id lives in a different
+                namespace than ``AgendaAttachment.attachment_id`` —
                 never pass an attachment id here; download attachments with
-                :meth:`download_attachment` instead.
+                ``download_attachment`` instead.
             destination: Local path to write the file to. Left untouched
                 (no partial file) if the download fails.
 
@@ -212,7 +212,7 @@ class CivicClerkClient:
         signed, time-limited blob URL on a different host than the tenant
         API, requested with the same injected HTTP client. Signed URLs
         expire; a request against an expired one surfaces as
-        :class:`APIStatusError`, not a distinct error type.
+        ``APIStatusError``, not a distinct error type.
 
         Args:
             attachment: The attachment to download; must have a
@@ -251,8 +251,8 @@ class CivicClerkClient:
         API did not provide text; it does not mean the file lacks one.
 
         Args:
-            file_id: A :attr:`PublishedFile.file_id`, as in
-                :meth:`download_file`.
+            file_id: A ``PublishedFile.file_id``, as in
+                ``download_file``.
 
         Returns:
             The extracted text, or ``None`` if the API returned no text.
@@ -270,7 +270,7 @@ class CivicClerkClient:
         """Sleep until ``min_request_interval`` has elapsed since the last request.
 
         The polite-by-default request gate: both request funnels
-        (:meth:`_get` and :meth:`_stream_to_file`) call this first, so no
+        (``_get`` and ``_stream_to_file``) call this first, so no
         two requests start closer together than the configured interval.
         Blocks the calling thread; a zero (or negative) interval disables
         pacing entirely.
@@ -305,7 +305,7 @@ class CivicClerkClient:
             path: Path under the tenant's base URL.
             params: Optional query parameters.
             not_found_error: Error type to raise on a 404 response — see
-                :meth:`_get_json_url`.
+                ``_get_json_url``.
         """
         return self._get_json_url(
             f"{self.base_url}{path}", params=params, not_found_error=not_found_error
@@ -320,7 +320,7 @@ class CivicClerkClient:
     ) -> dict[str, Any]:
         """GET an absolute URL (e.g. a continuation link) as JSON.
 
-        Raises the library's typed errors — see :meth:`_raise_for_error`.
+        Raises the library's typed errors — see ``_raise_for_error``.
         """
         response = self._get(url, params=params, not_found_error=not_found_error)
         try:
@@ -355,10 +355,10 @@ class CivicClerkClient:
         The single place that encodes how the API signals failure.
         ``not_found_error`` controls how a 404 is interpreted: most paths
         this client requests exist on every real tenant, so a 404 there
-        means the tenant itself is missing (:class:`UnknownTenantError`);
-        id-parameterized lookups pass :class:`NotFoundError` instead, and
+        means the tenant itself is missing (``UnknownTenantError``);
+        id-parameterized lookups pass ``NotFoundError`` instead, and
         requests to non-tenant hosts (signed blob URLs) pass plain
-        :class:`APIStatusError`.
+        ``APIStatusError``.
         """
         if response.status_code == 404:
             message = f"got 404 for {url}"
@@ -381,7 +381,7 @@ class CivicClerkClient:
     ) -> Path:
         """Stream a GET response body to ``destination`` in chunks.
 
-        Shared by :meth:`download_file` and :meth:`download_attachment`.
+        Shared by ``download_file`` and ``download_attachment``.
         Guards against the API's "empty 200 means unavailable" behavior: no
         file is left at ``destination`` unless the download completed with
         a non-empty body.
@@ -390,7 +390,7 @@ class CivicClerkClient:
             url: Absolute URL to GET.
             destination: Local path to write the response body to.
             not_found_error: How to interpret a 404 — see
-                :meth:`_raise_for_error`.
+                ``_raise_for_error``.
 
         Returns:
             ``destination``.

@@ -20,7 +20,7 @@ from libcivicclerk.errors import PayloadError, require
 
 
 def _guarded_parse(from_api):
-    """Surface malformed field shapes as :class:`PayloadError`.
+    """Surface malformed field shapes as ``PayloadError``.
 
     Wraps a ``from_api`` classmethod so a field that is present but the
     wrong shape (a string id, a scalar where a list belongs) raises the
@@ -52,7 +52,7 @@ def _text_or_none(value: Any) -> str | None:
 
 
 def _naive_datetime_or_none(value: Any) -> dt.datetime | None:
-    """Parse an API datetime string to a naive :class:`datetime.datetime`.
+    """Parse an API datetime string to a naive ``datetime.datetime``.
 
     The API stamps a ``Z`` suffix on values that are actually local
     wall-clock times (evening meetings arrive as ``19:00:00Z``), so the
@@ -97,7 +97,7 @@ class EventCategory:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "EventCategory":
-        """Build an :class:`EventCategory` from one API response object.
+        """Build an ``EventCategory`` from one API response object.
 
         Args:
             raw: One entry of an ``EventCategories`` response's ``value``
@@ -137,7 +137,7 @@ class PublishedFile:
 
     published_at: dt.datetime | None = None
     """When the portal published the file, as a naive datetime (the API's
-    timezone markers are unreliable; see :class:`Event`)."""
+    timezone markers are unreliable; see ``Event``)."""
 
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
     """The unmodified API object this model was parsed from."""
@@ -145,7 +145,7 @@ class PublishedFile:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "PublishedFile":
-        """Build a :class:`PublishedFile` from one ``publishedFiles`` entry.
+        """Build a ``PublishedFile`` from one ``publishedFiles`` entry.
 
         Raises:
             PayloadError: If the load-bearing ``fileId`` field is absent.
@@ -188,7 +188,7 @@ class EventLocation:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "EventLocation | None":
-        """Build an :class:`EventLocation`, or ``None`` when it is empty.
+        """Build an ``EventLocation``, or ``None`` when it is empty.
 
         The API always includes an ``eventLocation`` object; when every
         address component is blank there is no usable location and this
@@ -285,7 +285,7 @@ class Event:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "Event":
-        """Build an :class:`Event` from one ``Events`` response object.
+        """Build an ``Event`` from one ``Events`` response object.
 
         Raises:
             PayloadError: If the load-bearing ``id`` or ``eventDate``
@@ -353,7 +353,7 @@ class AgendaAttachment:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "AgendaAttachment":
-        """Build an :class:`AgendaAttachment` from one ``attachmentsList`` entry.
+        """Build an ``AgendaAttachment`` from one ``attachmentsList`` entry.
 
         Raises:
             PayloadError: If the load-bearing ``id`` field is absent.
@@ -397,7 +397,7 @@ class AgendaItem:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "AgendaItem":
-        """Build an :class:`AgendaItem` from one ``items``/``childItems`` entry.
+        """Build an ``AgendaItem`` from one ``items``/``childItems`` entry.
 
         Raises:
             PayloadError: If the load-bearing ``id`` field is absent.
@@ -422,13 +422,13 @@ class Agenda:
     """The structured agenda (sections, items, attachments) for one meeting."""
 
     agenda_id: int
-    """The agenda's stable numeric id — matches :attr:`Event.agenda_id`
+    """The agenda's stable numeric id — matches ``Event.agenda_id``
     (see that attribute for the ``0``/"no agenda" sentinel, already
     normalized to ``None`` there)."""
 
     items: list[AgendaItem] = field(default_factory=list)
     """Top-level agenda nodes, ordered by ``sort_order``. Use
-    :meth:`walk_items` to flatten the whole tree."""
+    ``walk_items`` to flatten the whole tree."""
 
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
     """The unmodified API response this model was parsed from."""
@@ -453,7 +453,7 @@ class Agenda:
     @classmethod
     @_guarded_parse
     def from_api(cls, raw: dict[str, Any]) -> "Agenda":
-        """Build an :class:`Agenda` from a ``GET /Meetings/{agendaId}`` response.
+        """Build an ``Agenda`` from a ``GET /Meetings/{agendaId}`` response.
 
         Raises:
             PayloadError: If the load-bearing ``id`` field is absent.
