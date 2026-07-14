@@ -211,6 +211,53 @@ class CivicClerkClient:
         url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=false)"
         return self._open_stream(url, not_found_error=NotFoundError)
 
+    def open_attachment(self, attachment: AgendaAttachment) -> AbstractContextManager[FileStream]:
+        """Open an agenda attachment's response without writing it to disk.
+
+        The streaming counterpart to ``download_attachment``, and the
+        attachment counterpart to ``open_file``: the yielded ``FileStream``
+        reports the attachment's content type, extension, and size before
+        its body is read, so a caller can compose a name from
+        ``AgendaAttachment.file_name`` (which has no extension) and the
+        stream's ``suffix``.
+
+        The bytes come from ``attachment.download_url`` — a signed,
+        time-limited blob URL on a different host than the tenant API,
+        requested with the same HTTP client. Expired URLs surface as
+        ``APIStatusError``.
+
+        Args:
+            attachment: The attachment to open; must have a
+                ``download_url``.
+
+        Returns:
+            A context manager yielding an open ``FileStream``, valid only
+            inside its ``with`` block.
+
+        Raises:
+            ValueError: If ``attachment.download_url`` is ``None`` — link
+                attachments and unpublished files have no file to stream.
+                Raised immediately, not on entering the ``with`` block.
+            NotFoundError: If the response body is empty, which the API
+                also uses to mean "unavailable". Raised on entering the
+                ``with`` block.
+            APIStatusError: If the API responds with an error status
+                (including an expired signed URL).
+            NetworkError: If the request fails at the network level.
+        """
+        return self._open_stream(self._require_download_url(attachment))
+
+    @staticmethod
+    def _require_download_url(attachment: AgendaAttachment) -> str:
+        """Return the attachment's ``download_url``, or explain why there isn't one."""
+        if attachment.download_url is None:
+            raise ValueError(
+                f"attachment {attachment.attachment_id} has no download_url; "
+                "check attachment.download_url is not None (and attachment.is_link "
+                "is False) before calling download_attachment"
+            )
+        return attachment.download_url
+
     @contextmanager
     def _open_stream(
         self,
@@ -296,13 +343,7 @@ class CivicClerkClient:
                 (including an expired signed URL).
             NetworkError: If the request fails at the network level.
         """
-        if attachment.download_url is None:
-            raise ValueError(
-                f"attachment {attachment.attachment_id} has no download_url; "
-                "check attachment.download_url is not None (and attachment.is_link "
-                "is False) before calling download_attachment"
-            )
-        return self._stream_to_file(attachment.download_url, destination)
+        return self._stream_to_file(self._require_download_url(attachment), destination)
 
     def get_file_text(self, file_id: int) -> str | None:
         """Fetch the API's best-effort plain-text extraction of a file.

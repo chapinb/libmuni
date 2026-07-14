@@ -216,6 +216,42 @@ def test_open_file_raises_not_found_on_entry_when_chunked_body_is_empty():
         pass  # pragma: no cover — entering the stream must raise
 
 
+# --- open_attachment: the same, for an attachment's signed blob URL ---
+
+
+def test_open_attachment_streams_from_the_signed_url():
+    seen: list[httpx.Request] = []
+    client = recording_bytes_client(b"attachment bytes", seen)
+    url = "https://exampletown.blob.core.windows.net/stream/minutes.pdf?sig=abc"
+    attachment = AgendaAttachment(attachment_id=1, file_name="Minutes", download_url=url)
+
+    with client.open_attachment(attachment) as stream:
+        assert stream.content_type == "application/pdf"
+        assert b"".join(stream.iter_bytes()) == b"attachment bytes"
+
+    assert str(seen[0].url) == url
+
+
+def test_open_attachment_raises_value_error_for_link_attachment():
+    client = stream_client(b"")
+    attachment = AgendaAttachment(
+        attachment_id=2, file_name="Related news article", is_link=True, download_url=None
+    )
+
+    with pytest.raises(ValueError):
+        client.open_attachment(attachment)  # eagerly, without entering a with block
+
+
+def test_open_attachment_raises_not_found_on_entry_when_body_is_empty():
+    client = stream_client(b"")
+    attachment = AgendaAttachment(
+        attachment_id=3, download_url="https://exampletown.blob.core.windows.net/x.pdf?sig=abc"
+    )
+
+    with pytest.raises(NotFoundError), client.open_attachment(attachment):
+        pass  # pragma: no cover — entering the stream must raise
+
+
 # --- download_attachment: agenda attachments via their signed download_url ---
 
 

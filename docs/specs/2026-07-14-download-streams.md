@@ -130,6 +130,12 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   suffix is in scope inside the `with` block, so auto-appending buys one
   string interpolation while making the return value diverge from the
   argument and making an intentionally extensionless file impossible.
+- **`open_attachment` was built before `suffix`, swapping slices 4 and 6.**
+  The URL-path leg of the suffix chain only exists to rescue attachments,
+  whose GUID blob paths carry the extension, so its acceptance test needs an
+  attachment-shaped URL — which only `open_attachment` can produce through
+  the public surface. Building `suffix` first would have meant testing it
+  against a hand-built response instead of the client.
 - **`download_file` / `download_attachment` are retained**, reimplemented on
   the context manager. They are the right one-liner for "I already know the
   name I want"; removing them would be a breaking change that buys nothing.
@@ -183,7 +189,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   leaves nothing behind on failure. Acceptance: an extensionless destination
   stays extensionless; a mid-stream transport failure leaves no file. Touches
   `streams.py`.
-- [ ] **`open_attachment(attachment)`** — mirrors `open_file` for signed blob
+- [x] **`open_attachment(attachment)`** — mirrors `open_file` for signed blob
   URLs, raising `ValueError` when `download_url` is `None`. Acceptance: a link
   attachment raises `ValueError`; a file attachment streams. Touches
   `client.py`.
