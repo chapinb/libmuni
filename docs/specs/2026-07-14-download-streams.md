@@ -185,7 +185,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   attachment-shaped response with only a GUID `.pdf` URL and a content type
   also resolves `.pdf`, and a typeless response resolves `None`. Touches
   `streams.py`.
-- [ ] **`save(destination)`** — writes exactly the path given, returns it, and
+- [x] **`save(destination)`** — writes exactly the path given, returns it, and
   leaves nothing behind on failure. Acceptance: an extensionless destination
   stays extensionless; a mid-stream transport failure leaves no file. Touches
   `streams.py`.

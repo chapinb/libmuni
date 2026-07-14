@@ -14,11 +14,11 @@ it.
 import mimetypes
 from collections.abc import Iterator
 from email.message import Message
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 import httpx
 
-from libcivicclerk.errors import NotFoundError
+from libcivicclerk.errors import NetworkError, NotFoundError
 
 
 class FileStream:
@@ -88,9 +88,47 @@ class FileStream:
         if self._buffered is not None:
             first, self._buffered = self._buffered, None
             yield first
-        for chunk in self._chunks:
-            if chunk:
-                yield chunk
+        try:
+            for chunk in self._chunks:
+                if chunk:
+                    yield chunk
+        except httpx.TransportError as exc:
+            url = self._response.request.url
+            raise NetworkError(f"request to {url} failed: {exc}") from exc
+
+    def save(self, destination: Path) -> Path:
+        """Write the body to exactly ``destination`` and return it.
+
+        The path is written verbatim: a destination with no extension is
+        written with no extension, and nothing is appended or renamed. The
+        stream's ``suffix`` is in scope inside the ``with`` block, so a
+        caller who wants an extension composes it into the path themselves.
+
+        Written in chunks, so large files never load fully into memory. No
+        file is left at ``destination`` if the write fails — including when
+        the connection drops partway through. Valid only inside the ``with``
+        block that yielded this stream, and only once: the body cannot be
+        rewound.
+
+        Args:
+            destination: Local path to write the body to, used exactly as
+                given.
+
+        Returns:
+            ``destination``, for chaining.
+
+        Raises:
+            NetworkError: If the connection fails partway through the body.
+            OSError: If ``destination`` cannot be written.
+        """
+        try:
+            with destination.open("wb") as file:
+                for chunk in self.iter_bytes():
+                    file.write(chunk)
+        except Exception:
+            destination.unlink(missing_ok=True)
+            raise
+        return destination
 
     @property
     def content_type(self) -> str | None:

@@ -216,6 +216,87 @@ def test_open_file_raises_not_found_on_entry_when_chunked_body_is_empty():
         pass  # pragma: no cover — entering the stream must raise
 
 
+# --- save: writes exactly the path it was handed ---
+
+
+def test_save_writes_the_body_and_returns_the_destination(tmp_path):
+    client = stream_client(b"%PDF-1.4 fake pdf bytes")
+    destination = tmp_path / "agenda.pdf"
+
+    with client.open_file(123) as stream:
+        result = stream.save(destination)
+
+    assert result == destination
+    assert destination.read_bytes() == b"%PDF-1.4 fake pdf bytes"
+
+
+def test_save_leaves_an_extensionless_destination_extensionless(tmp_path):
+    # The library never edits the path the caller chose, even when the
+    # stream knows a suffix the destination lacks.
+    client = stream_client(b"bytes")
+    destination = tmp_path / "no-extension-please"
+
+    with client.open_file(123) as stream:
+        assert stream.suffix == ".pdf"
+        result = stream.save(destination)
+
+    assert result == destination
+    assert destination.read_bytes() == b"bytes"
+    assert not (tmp_path / "no-extension-please.pdf").exists()
+
+
+def test_save_interrupted_mid_stream_leaves_no_partial_file(tmp_path):
+    class DropsMidStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"partial bytes"
+            raise httpx.ReadError("connection lost")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=DropsMidStream())
+
+    destination = tmp_path / "interrupted.pdf"
+
+    with pytest.raises(NetworkError):  # noqa: SIM117 — the with blocks nest by design
+        with mock_client(handler).open_file(123) as stream:
+            stream.save(destination)
+
+    assert not destination.exists()
+
+
+def test_a_mid_body_drop_raises_network_error_inside_the_with_block(tmp_path):
+    # httpx must not leak: a caller catching NetworkError around save() has
+    # to see it there, not only once the with block exits.
+    class DropsMidStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"partial bytes"
+            raise httpx.ReadError("connection lost")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=DropsMidStream())
+
+    with mock_client(handler).open_file(123) as stream:  # noqa: SIM117
+        # Deliberately nested: pytest.raises must sit inside the stream's
+        # with block, or this would not prove where the error surfaces.
+        with pytest.raises(NetworkError):
+            stream.save(tmp_path / "interrupted.pdf")
+
+    assert not (tmp_path / "interrupted.pdf").exists()
+
+
+def test_caller_composes_a_filename_from_the_model_name_and_the_stream_suffix(tmp_path):
+    # The whole point of the feature: the name is the caller's, the
+    # extension is the response's, and they meet inside the with block.
+    client = headers_client(
+        {"content-type": "application/pdf", "content-disposition": "attachment; filename=123.pdf"}
+    )
+
+    with client.open_file(123) as stream:
+        saved = stream.save(tmp_path / f"Regular Meeting Agenda{stream.suffix}")
+
+    assert saved.name == "Regular Meeting Agenda.pdf"
+    assert saved.read_bytes() == b"body"
+
+
 # --- suffix: the extension comes from the response, never from a guess ---
 
 
