@@ -93,6 +93,19 @@ Everything the library raises subclasses `CivicClerkError`:
 Absent optional data is never an error: an event with no published
 materials has an empty `published_files`, not an exception.
 
+## Documentation
+
+Full docs: <https://chapinb.github.io/libcivicclerk/latest/>. The
+[cheat sheet](https://chapinb.github.io/libcivicclerk/latest/cheatsheet/)
+is the fastest way in — the whole public surface, the traps, and what the
+library deliberately does not do.
+
+Using an LLM or coding agent? Hand it
+[llms-full.txt](https://chapinb.github.io/libcivicclerk/latest/llms-full.txt),
+which is the entire documentation set — signatures included — as a single
+file. An [llms.txt](https://chapinb.github.io/libcivicclerk/latest/llms.txt)
+index is served alongside it in the [llms.txt](https://llmstxt.org/) format.
+
 ## Versioning
 
 Semantic versioning covers **this library's surface only**. The upstream
