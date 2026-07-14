@@ -11,6 +11,7 @@ can inject a configured :class:`httpx.Client` to apply it.
 import datetime as dt
 import json
 from collections.abc import Iterator
+from importlib.metadata import version as _distribution_version
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,12 @@ from libcivicclerk.errors import (
 )
 from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
 
+_USER_AGENT = (
+    f"libcivicclerk/{_distribution_version('libcivicclerk')} "
+    "(+https://github.com/chapinb/libcivicclerk)"
+)
+_HTTPX_DEFAULT_USER_AGENT = f"python-httpx/{httpx.__version__}"
+
 
 class CivicClerkClient:
     """Read-only client for one CivicClerk tenant's public API.
@@ -35,7 +42,9 @@ class CivicClerkClient:
         http_client: Optional preconfigured :class:`httpx.Client` (for
             timeouts, proxies, or transport injection in tests). When
             omitted, the client creates and owns one; either way, calling
-            :meth:`close` (or using ``with``) closes it.
+            :meth:`close` (or using ``with``) closes it. Unless the
+            caller set a ``User-Agent`` header, it is replaced with the
+            library's ``libcivicclerk/{version}`` identifier.
 
     Example:
         >>> with CivicClerkClient("exampletown") as client:
@@ -47,6 +56,8 @@ class CivicClerkClient:
         self.tenant = tenant
         self.base_url = f"https://{tenant}.api.civicclerk.com/v1"
         self._http = http_client if http_client is not None else httpx.Client()
+        if self._http.headers.get("user-agent") in ("", _HTTPX_DEFAULT_USER_AGENT):
+            self._http.headers["user-agent"] = _USER_AGENT
 
     def get_event_categories(self) -> list[EventCategory]:
         """Fetch the tenant's meeting categories (boards and committees).
