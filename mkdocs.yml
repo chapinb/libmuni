@@ -29,6 +29,7 @@ extra:
 
 nav:
   - Home: index.md
+  - Cheat sheet: cheatsheet.md
   - Usage guide: usage.md
   - Command line: cli.md
   - API reference: api.md
@@ -70,6 +71,8 @@ plugins:
       sections:
         Getting started:
           - index.md: Install, quickstart, and what the library is for.
+          - cheatsheet.md: The complete public surface, the two traps that
+              bite callers, and what the library deliberately does not do.
         Guides:
           - usage.md: Datetimes, request pacing, listing meetings,
               downloads, and errors.
