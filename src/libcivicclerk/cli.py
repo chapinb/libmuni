@@ -13,6 +13,7 @@ import itertools
 import json
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
 from libcivicclerk import CivicClerkClient
 from libcivicclerk.errors import CivicClerkError
@@ -84,6 +85,24 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     events.set_defaults(command=_run_events)
 
+    agenda = subparsers.add_parser("agenda", help="show a meeting's structured agenda tree")
+    _add_common_arguments(agenda)
+    agenda.add_argument("agenda_id", type=int, help="agenda id (shown in events output)")
+    agenda.set_defaults(command=_run_agenda)
+
+    text = subparsers.add_parser(
+        "text", help="print the API's best-effort text extraction of a file"
+    )
+    text.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    text.add_argument("file_id", type=int, help="published file id")
+    text.set_defaults(command=_run_text)
+
+    download = subparsers.add_parser("download", help="download a meeting-level file")
+    download.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    download.add_argument("file_id", type=int, help="published file id")
+    download.add_argument("destination", type=Path, help="local path to write the file to")
+    download.set_defaults(command=_run_download)
+
     return parser
 
 
@@ -118,6 +137,37 @@ def _run_events(client: CivicClerkClient, args: argparse.Namespace) -> None:
         when = event.starts_at.strftime("%Y-%m-%d %H:%M")
         agenda = f"  agenda:{event.agenda_id}" if event.agenda_id else ""
         print(f"{when}  {event.name or '(untitled)'}{agenda}")
+
+
+def _run_agenda(client: CivicClerkClient, args: argparse.Namespace) -> None:
+    agenda = client.get_agenda(args.agenda_id)
+    if args.json:
+        _print_json(agenda.raw)
+        return
+
+    def render(items: list, depth: int) -> None:
+        for item in items:
+            count = len(item.attachments)
+            suffix = f"  [{count} attachment{'s' if count != 1 else ''}]" if count else ""
+            print(f"{'  ' * depth}{item.name or '(untitled)'}{suffix}")
+            render(item.children, depth + 1)
+
+    render(agenda.items, 0)
+
+
+def _run_text(client: CivicClerkClient, args: argparse.Namespace) -> None:
+    text = client.get_file_text(args.file_id)
+    if text is None:
+        # Within the API's contract (best-effort extraction), so not an
+        # error exit — but stdout stays clean for piping.
+        print(f"no text available for file {args.file_id}", file=sys.stderr)
+        return
+    print(text)
+
+
+def _run_download(client: CivicClerkClient, args: argparse.Namespace) -> None:
+    destination = client.download_file(args.file_id, args.destination)
+    print(f"saved {destination}")
 
 
 def _print_json(payload: object) -> None:
