@@ -13,6 +13,7 @@ import datetime as dt
 import json
 import time
 from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
 from importlib.metadata import version as _distribution_version
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ from libcivicclerk.errors import (
     UnknownTenantError,
 )
 from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
+from libcivicclerk.streams import FileStream
 
 _USER_AGENT = (
     f"libcivicclerk/{_distribution_version('libcivicclerk')} "
@@ -177,6 +179,64 @@ class CivicClerkClient:
                 url=f"{self.base_url}/Meetings/{agenda_id}",
             )
         return Agenda.from_api(payload)
+
+    def open_file(self, file_id: int) -> AbstractContextManager[FileStream]:
+        """Open a meeting-level file's response without writing it to disk.
+
+        Use this when the destination filename depends on the response: the
+        yielded ``FileStream`` reports the file's content type, extension,
+        and size before its body is read, so a caller can compose a name
+        from ``PublishedFile.name`` (which has no extension) and the
+        stream's ``suffix``. Performs exactly one HTTP request, paced like
+        any other.
+
+        The stream is only valid inside the ``with`` block; the response
+        closes on exit. To download to a path you have already chosen, use
+        ``download_file`` instead.
+
+        Args:
+            file_id: A ``PublishedFile.file_id``, as in ``download_file`` —
+                never an ``AgendaAttachment.attachment_id``.
+
+        Returns:
+            A context manager yielding an open ``FileStream``.
+
+        Raises:
+            NotFoundError: If ``file_id`` does not exist. Raised on entering
+                the ``with`` block, including for the API's "HTTP 200 with a
+                0-byte body" way of saying a file is unavailable.
+            APIStatusError: If the API responds with another error status.
+            NetworkError: If the request fails at the network level.
+        """
+        url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=false)"
+        return self._open_stream(url, not_found_error=NotFoundError)
+
+    @contextmanager
+    def _open_stream(
+        self,
+        url: str,
+        *,
+        not_found_error: type[APIStatusError] = APIStatusError,
+    ) -> Iterator[FileStream]:
+        """Stream a GET response, yielding it as a ``FileStream``.
+
+        The request funnel for every download path: paces the request,
+        translates failures into this library's typed errors (including any
+        raised while the caller consumes the body inside the ``with``
+        block), and closes the response on exit.
+
+        Args:
+            url: Absolute URL to GET.
+            not_found_error: How to interpret a 404 — see
+                ``_raise_for_error``.
+        """
+        self._pace()
+        try:
+            with self._http.stream("GET", url) as response:
+                self._raise_for_error(response, url, not_found_error)
+                yield FileStream(response)
+        except httpx.TransportError as exc:
+            raise NetworkError(f"request to {url} failed: {exc}") from exc
 
     def download_file(self, file_id: int, destination: Path) -> Path:
         """Download a meeting-level file to ``destination``.

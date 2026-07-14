@@ -117,6 +117,56 @@ def test_download_file_raises_not_found_on_404(tmp_path):
     assert not destination.exists()
 
 
+# --- open_file: inspect the response before choosing a destination ---
+
+
+def test_open_file_reports_content_type_and_size():
+    client = stream_client(b"%PDF-1.4 fake pdf bytes")
+
+    with client.open_file(123) as stream:
+        assert stream.content_type == "application/pdf"
+        assert stream.size == len(b"%PDF-1.4 fake pdf bytes")
+
+
+def test_open_file_strips_content_type_parameters():
+    client = stream_client(b"some text", content_type="text/plain; charset=utf-8")
+
+    with client.open_file(123) as stream:
+        assert stream.content_type == "text/plain"
+
+
+def test_open_file_requests_meeting_file_stream_endpoint():
+    seen: list[httpx.Request] = []
+
+    with recording_bytes_client(b"data", seen).open_file(42):
+        pass
+
+    assert str(seen[0].url) == (
+        "https://exampletown.api.civicclerk.com/v1/Meetings/"
+        "GetMeetingFileStream(fileId=42,plainText=false)"
+    )
+
+
+def test_open_file_reports_no_size_when_server_streams_chunked():
+    class ChunkedStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"chunk one "
+            yield b"chunk two"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=ChunkedStream())
+
+    with mock_client(handler).open_file(123) as stream:
+        assert stream.size is None
+
+
+def test_open_file_raises_not_found_on_404():
+    client = stream_client(b"", status_code=404)
+
+    with pytest.raises(NotFoundError), client.open_file(999999):
+        pass  # pragma: no cover — entering the stream must raise
+
+
 # --- download_attachment: agenda attachments via their signed download_url ---
 
 
