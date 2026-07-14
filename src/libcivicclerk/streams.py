@@ -13,6 +13,8 @@ it.
 
 import httpx
 
+from libcivicclerk.errors import NotFoundError
+
 
 class FileStream:
     """A file's response headers and body, open and not yet consumed.
@@ -23,10 +25,48 @@ class FileStream:
 
     Args:
         response: The open, streaming response to wrap.
+
+    Raises:
+        NotFoundError: If the body is empty, which the API uses to mean
+            "unavailable". Detected as the stream is opened, before the
+            caller sees it.
     """
 
     def __init__(self, response: httpx.Response) -> None:
         self._response = response
+        self._chunks = response.iter_bytes()
+        self._buffered: bytes | None = self._read_first_chunk()
+
+    def _read_first_chunk(self) -> bytes:
+        """Return the body's first chunk, proving the body is not empty.
+
+        The API answers an unavailable file with HTTP 200 and a 0-byte
+        body, so emptiness has to be settled before the caller is handed
+        the stream — otherwise a caller who only reads the headers would
+        write a 0-byte file. ``Content-Length: 0`` is decisive; when the
+        header is absent, the only way to know is to read.
+
+        The chunk is buffered rather than discarded, and ``iter_bytes``
+        replays it as the body's first chunk.
+
+        Raises:
+            NotFoundError: If the body is empty.
+        """
+        if self._response.headers.get("content-length") == "0":
+            raise self._unavailable()
+        for chunk in self._chunks:
+            if chunk:
+                return chunk
+        raise self._unavailable()
+
+    def _unavailable(self) -> NotFoundError:
+        """The error for an empty body — the API's way of saying "no such file"."""
+        url = str(self._response.request.url)
+        return NotFoundError(
+            f"file at {url} is unavailable (empty response body)",
+            status_code=200,
+            url=url,
+        )
 
     @property
     def content_type(self) -> str | None:

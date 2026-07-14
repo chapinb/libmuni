@@ -165,7 +165,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   only. Acceptance: a mock transport serving a PDF with known headers yields a
   stream reporting `application/pdf` and its length. Touches `client.py`, new
   `streams.py`, `tests/test_downloads.py`.
-- [ ] **Empty-body detection on entry** — `Content-Length: 0` and, when the
+- [x] **Empty-body detection on entry** — `Content-Length: 0` and, when the
   header is absent, an empty first chunk both raise `NotFoundError` from the
   `with` statement itself. Acceptance: entering the stream for an empty 200
   raises before any body is read, and no file is created. Touches `streams.py`.

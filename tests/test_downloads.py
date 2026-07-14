@@ -167,6 +167,30 @@ def test_open_file_raises_not_found_on_404():
         pass  # pragma: no cover — entering the stream must raise
 
 
+def test_open_file_raises_not_found_on_entry_when_content_length_is_zero():
+    # The API says "unavailable" with HTTP 200 and a 0-byte body. The caller
+    # never touches iter_bytes here: entry alone must raise, or a caller who
+    # only inspects headers would happily write a 0-byte PDF.
+    client = stream_client(b"")
+
+    with pytest.raises(NotFoundError), client.open_file(999999):
+        pass  # pragma: no cover — entering the stream must raise
+
+
+def test_open_file_raises_not_found_on_entry_when_chunked_body_is_empty():
+    # Same trap, but the server declares no Content-Length, so emptiness can
+    # only be discovered by reading the first chunk.
+    class EmptyChunkedStream(httpx.SyncByteStream):
+        def __iter__(self):
+            return iter(())
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, stream=EmptyChunkedStream())
+
+    with pytest.raises(NotFoundError), mock_client(handler).open_file(999999):
+        pass  # pragma: no cover — entering the stream must raise
+
+
 # --- download_attachment: agenda attachments via their signed download_url ---
 
 
