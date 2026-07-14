@@ -293,6 +293,11 @@ class CivicClerkClient:
         405) and ``Range`` headers are ignored, so downloads cannot be
         resumed — a failed download must be retried from the start.
 
+        The one-liner for when you already know the name you want. When the
+        name depends on the file's type, open the stream with ``open_file``
+        instead: it reports the content type, extension, and size before the
+        body is read, and ``destination`` here is written verbatim.
+
         Args:
             file_id: A ``PublishedFile.file_id`` from
                 ``Event.published_files``. This id lives in a different
@@ -312,8 +317,8 @@ class CivicClerkClient:
             APIStatusError: If the API responds with another error status.
             NetworkError: If the request fails at the network level.
         """
-        url = f"{self.base_url}/Meetings/GetMeetingFileStream(fileId={file_id},plainText=false)"
-        return self._stream_to_file(url, destination, not_found_error=NotFoundError)
+        with self.open_file(file_id) as stream:
+            return stream.save(destination)
 
     def download_attachment(self, attachment: AgendaAttachment, destination: Path) -> Path:
         """Download an agenda attachment to ``destination`` via its signed URL.
@@ -323,6 +328,11 @@ class CivicClerkClient:
         API, requested with the same injected HTTP client. Signed URLs
         expire; a request against an expired one surfaces as
         ``APIStatusError``, not a distinct error type.
+
+        The one-liner for when you already know the name you want. When the
+        name depends on the file's type, open the stream with
+        ``open_attachment`` instead; ``destination`` here is written
+        verbatim.
 
         Args:
             attachment: The attachment to download; must have a
@@ -343,7 +353,8 @@ class CivicClerkClient:
                 (including an expired signed URL).
             NetworkError: If the request fails at the network level.
         """
-        return self._stream_to_file(self._require_download_url(attachment), destination)
+        with self.open_attachment(attachment) as stream:
+            return stream.save(destination)
 
     def get_file_text(self, file_id: int) -> str | None:
         """Fetch the API's best-effort plain-text extraction of a file.
@@ -374,7 +385,7 @@ class CivicClerkClient:
         """Sleep until ``min_request_interval`` has elapsed since the last request.
 
         The polite-by-default request gate: both request funnels
-        (``_get`` and ``_stream_to_file``) call this first, so no
+        (``_get`` and ``_open_stream``) call this first, so no
         two requests start closer together than the configured interval.
         Blocks the calling thread; a zero (or negative) interval disables
         pacing entirely.
@@ -475,61 +486,3 @@ class CivicClerkClient:
                 status_code=response.status_code,
                 url=url,
             )
-
-    def _stream_to_file(
-        self,
-        url: str,
-        destination: Path,
-        *,
-        not_found_error: type[APIStatusError] = APIStatusError,
-    ) -> Path:
-        """Stream a GET response body to ``destination`` in chunks.
-
-        Shared by ``download_file`` and ``download_attachment``.
-        Guards against the API's "empty 200 means unavailable" behavior: no
-        file is left at ``destination`` unless the download completed with
-        a non-empty body.
-
-        Args:
-            url: Absolute URL to GET.
-            destination: Local path to write the response body to.
-            not_found_error: How to interpret a 404 — see
-                ``_raise_for_error``.
-
-        Returns:
-            ``destination``.
-
-        Raises:
-            NotFoundError: If the response body is empty (the API's way of
-                saying a file is unavailable), or on a 404 when
-                ``not_found_error`` says so.
-            APIStatusError: If the response is another error status.
-            NetworkError: If the request fails at the network level.
-        """
-        self._pace()
-        wrote_any_bytes = False
-        opened_destination = False
-        try:
-            with self._http.stream("GET", url) as response:
-                self._raise_for_error(response, url, not_found_error)
-                opened_destination = True
-                with destination.open("wb") as file:
-                    for chunk in response.iter_bytes():
-                        if chunk:
-                            file.write(chunk)
-                            wrote_any_bytes = True
-            if not wrote_any_bytes:
-                raise NotFoundError(
-                    f"file at {url} is unavailable (empty response body)",
-                    status_code=200,
-                    url=url,
-                )
-        except httpx.TransportError as exc:
-            if opened_destination:
-                destination.unlink(missing_ok=True)
-            raise NetworkError(f"request to {url} failed: {exc}") from exc
-        except Exception:
-            if opened_destination:
-                destination.unlink(missing_ok=True)
-            raise
-        return destination

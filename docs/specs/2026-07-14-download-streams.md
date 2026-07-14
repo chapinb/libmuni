@@ -193,7 +193,7 @@ runtime dependency (`mimetypes` is stdlib), no municipality named anywhere.
   URLs, raising `ValueError` when `download_url` is `None`. Acceptance: a link
   attachment raises `ValueError`; a file attachment streams. Touches
   `client.py`.
-- [ ] **Reimplement `download_file` / `download_attachment` on the context
+- [x] **Reimplement `download_file` / `download_attachment` on the context
   managers**, retiring `_stream_to_file`. Acceptance: the existing download
   tests pass unchanged. Touches `client.py`.
 - [ ] **Export and document** — `FileStream` in `__all__`, a streaming section
