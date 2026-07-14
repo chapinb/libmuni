@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-14
+
 ### Added
 
 - Initial public release: `CivicClerkClient`, a read-only client for one
@@ -31,4 +33,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   request forgery surface) and that responses are not size-bounded, so callers
   fetching from untrusted tenants know to isolate the network and cap sizes.
 
-[Unreleased]: https://github.com/chapinb/libcivicclerk/commits/main
+[Unreleased]: https://github.com/chapinb/libcivicclerk/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/chapinb/libcivicclerk/releases/tag/v0.1.0
