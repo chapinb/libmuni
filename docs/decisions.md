@@ -82,6 +82,15 @@ library. Such policy varies per municipality and per consuming tool; baking
 any one municipality's rules in would misparse every other tenant. Recorded
 test fixtures are scrubbed to fictional tenants for the same reason.
 
+## Typed exceptions are the diagnostic boundary; logging stays caller-owned
+
+The library emits no logs of its own. Its operations have no hidden retries,
+caches, or background state to explain, so typed exceptions carry the useful
+library context while an injected httpx client or the consuming application
+owns request timing and wire-level observability. This also avoids duplicating
+logs at two layers and reduces the chance that signed attachment URLs are
+persisted; exception-visible URLs omit userinfo, queries, and fragments.
+
 ## Downloads expose the response as a context manager
 
 A caller must choose a destination path before the request is made, but the
