@@ -56,6 +56,14 @@ The client the library creates for you follows redirects already; an
 injected client keeps httpx's default of *not* following them, so set
 `follow_redirects=True` unless you have a reason not to.
 
+Treat every API-provided request target as untrusted: attachment downloads use
+the response's signed URL, event pagination follows its absolute continuation
+URL, and enabled redirects apply to all requests. A malicious tenant can direct
+those requests to internal services, carrying custom headers from an injected
+client. Do not attach credentials to that client, and isolate its network when
+using tenants you do not trust. See the packaged security policy for the full
+threat model.
+
 For response-level retries with backoff and a development cache, consider
 wrapping your client with [careful](https://pypi.org/project/careful/) —
 a library built for exactly this kind of polite scraping — and injecting
@@ -98,7 +106,7 @@ Practical limits inherited from the API:
 
 - **No resume.** `Range` headers are ignored and `HEAD` is rejected, so a
   failed download restarts from zero. The library never leaves a partial
-  file at the destination.
+  file at the destination, and an existing destination remains unchanged.
 - **Empty 200 means unavailable.** The API answers unknown or unpublished
   files with an empty body and status 200; the library normalizes that to
   `NotFoundError`.
@@ -158,6 +166,13 @@ is raised.
 Absent optional data is never an error: an event with no published
 materials has an empty `published_files`, not an exception. A blanket
 `except CivicClerkError` catches everything the client can raise.
+
+The library deliberately emits no logs of its own. Typed exceptions provide
+safe library-level diagnostics, with credentials removed from their URLs;
+configure logging or event hooks on your injected `httpx.Client` when you need
+request timing, retry, or wire-level observability. Ensure that application or
+HTTP-client logging also redacts signed URLs, because models retain their full
+download URLs for making requests.
 
 ## Reaching unmodeled fields
 

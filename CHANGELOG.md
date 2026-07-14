@@ -30,8 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tenant is validated as a single DNS label before any request is made, so a
   crafted value cannot redirect requests off `{tenant}.api.civicclerk.com`.
 - Documented that attachment downloads follow an API-supplied URL (server-side
-  request forgery surface) and that responses are not size-bounded, so callers
-  fetching from untrusted tenants know to isolate the network and cap sizes.
+  request forgery surface), as do pagination continuation links and redirects,
+  and that responses are not size-bounded, so callers fetching from untrusted
+  tenants know to isolate the network and cap sizes.
+- Exception diagnostics redact URL credentials, query strings, and fragments
+  so signed download URLs and continuation tokens do not enter routine logs.
 
 [Unreleased]: https://github.com/chapinb/libcivicclerk/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/chapinb/libcivicclerk/releases/tag/v0.1.0

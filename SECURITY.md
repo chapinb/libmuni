@@ -24,11 +24,15 @@ design and are documented on `CivicClerkClient`; treat them as the caller's
 responsibility, not library bugs:
 
 - **Attacker-influenced request targets (SSRF).** Attachment downloads follow a
-  URL taken verbatim from the tenant's API response, on a separate host, with
-  redirects followed by default. A malicious or compromised tenant can point
-  the client at internal or link-local addresses. Do not attach credentials to
-  an injected HTTP client, and isolate the network when fetching from tenants
-  you do not trust.
+  URL taken verbatim from the tenant's API response, paginated event listings
+  follow the response's absolute `@odata.nextLink`, and the library-owned HTTP
+  client follows redirects for every request. A malicious or compromised tenant
+  can therefore point the client at internal or link-local addresses through
+  any of those paths. The same injected HTTP client makes each request, so its
+  custom headers may accompany a request to the attacker-selected host. Do not
+  attach credentials to an injected client, isolate the network when fetching
+  from tenants you do not trust, and inject a client with redirects disabled if
+  your application does not need them.
 - **No response-size bounds.** Downloads and JSON list responses are not
   capped; a hostile endpoint can exhaust disk or memory. Bound response size in
   your injected HTTP client or around the call.
@@ -37,3 +41,8 @@ In scope: memory-safety or injection flaws in parsing, a tenant or URL value
 escaping its intended host despite validation, credential leakage the
 documentation does not already call out, and denial of service not attributable
 to the documented unbounded-response behavior.
+
+Exception messages and `APIStatusError.url` omit URL userinfo, query strings,
+and fragments so signed attachment credentials and continuation tokens are safe
+from routine exception logging. Full signed URLs remain intentionally available
+on the source models for callers that need to make the request.

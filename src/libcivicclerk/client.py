@@ -78,21 +78,23 @@ class CivicClerkClient:
         ValueError: If ``tenant`` is not a single valid DNS label.
 
     Security:
-        Attacker-influenced request targets. Attachment downloads follow a
-        URL taken verbatim from the tenant's API response
-        (``AgendaAttachment.download_url``), pointing at a separate blob
-        host. A malicious or compromised tenant therefore chooses the host
-        the client connects to — including internal or link-local
-        addresses (server-side request forgery) — and, because redirects
-        are followed by default, can bounce the request onward from there.
-        Any header on the injected ``http_client`` is sent along, and
-        ``httpx`` strips only ``Authorization`` on a cross-origin redirect,
-        not custom headers or cookies. Two consequences: (1) do not put
-        credentials on the injected client, or they may leak to a host the
-        API names; (2) if you fetch attachments from tenants you do not
-        trust, run this client where it cannot reach sensitive internal
-        endpoints, and consider an ``http_client`` with
+        Attacker-influenced request targets. Attachment downloads follow
+        ``AgendaAttachment.download_url`` verbatim, event pagination follows
+        the response's absolute ``@odata.nextLink``, and the library-owned
+        client follows redirects for every request. A malicious or
+        compromised tenant can therefore choose a host the client connects
+        to — including internal or link-local addresses (server-side request
+        forgery). Any header on the injected ``http_client`` is sent along,
+        and ``httpx`` strips only ``Authorization`` on a cross-origin
+        redirect, not custom headers or cookies. Do not put credentials on
+        the injected client; when using untrusted tenants, isolate the
+        network and consider an ``http_client`` with
         ``follow_redirects=False``.
+
+        Exception diagnostics retain only a URL's scheme, host, port, and
+        path. Userinfo, query strings, and fragments are omitted so signed
+        attachment credentials and continuation tokens do not enter routine
+        exception logs.
 
         No response-size bounds. The client streams downloads to disk in
         chunks (large files never load fully into memory), but neither
