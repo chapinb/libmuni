@@ -6,6 +6,8 @@ thin, typed client over the public (unauthenticated) API at
 ``https://{tenant}.api.civicclerk.com/v1``.
 """
 
+from importlib.metadata import version as _distribution_version
+
 from libcivicclerk.client import CivicClerkClient
 from libcivicclerk.errors import (
     APIStatusError,
@@ -25,7 +27,7 @@ from libcivicclerk.models import (
     PublishedFile,
 )
 
-__version__ = "0.1.0"
+__version__ = _distribution_version("libcivicclerk")
 
 __all__ = [
     "APIStatusError",
