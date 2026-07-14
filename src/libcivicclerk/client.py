@@ -11,6 +11,7 @@ configured ``httpx.Client`` to apply it.
 
 import datetime as dt
 import json
+import re
 import time
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
@@ -36,13 +37,24 @@ _USER_AGENT = (
 )
 _HTTPX_DEFAULT_USER_AGENT = f"python-httpx/{httpx.__version__}"
 
+_TENANT_PATTERN = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
+"""A single DNS label: letters, digits, and interior hyphens, up to 63
+characters. The tenant is interpolated into the API host, so it is validated
+to that grammar — anything else (a dot, slash, ``@``, ``#``, or ``?``) could
+redirect the request to a host other than ``{tenant}.api.civicclerk.com``."""
+
 
 class CivicClerkClient:
     """Read-only client for one CivicClerk tenant's public API.
 
     Args:
         tenant: The tenant's subdomain — the ``exampletown`` in
-            ``https://exampletown.api.civicclerk.com``.
+            ``https://exampletown.api.civicclerk.com``. Must be a single
+            DNS label (letters, digits, and interior hyphens); it is
+            interpolated into the API host and validated to that grammar,
+            so a value containing a dot, slash, or other URL-significant
+            character raises ``ValueError`` rather than silently
+            addressing a different host.
         http_client: Optional preconfigured ``httpx.Client`` (for
             timeouts, proxies, or transport injection in tests). When
             omitted, the client creates and owns one that follows
@@ -51,13 +63,43 @@ class CivicClerkClient:
             ``follow_redirects=True`` as well. Either way, calling
             ``close`` (or using ``with``) closes it. Unless the
             caller set a ``User-Agent`` header, it is replaced with the
-            library's ``libcivicclerk/{version}`` identifier.
+            library's ``libcivicclerk/{version}`` identifier. Do not
+            attach ambient credentials (an ``Authorization`` header, an
+            API key, cookies) to this client — see Security below.
         min_request_interval: Minimum seconds between requests — the
             client sleeps as needed so consecutive requests (including
             pagination and downloads) stay at least this far apart.
             Defaults to ``0.25`` (at most ~4 requests/second) to stay
             polite toward small municipal servers; pass ``0`` to disable
             and own your request rate entirely.
+
+    Raises:
+        ValueError: If ``tenant`` is not a single valid DNS label.
+
+    Security:
+        Attacker-influenced request targets. Attachment downloads follow a
+        URL taken verbatim from the tenant's API response
+        (``AgendaAttachment.download_url``), pointing at a separate blob
+        host. A malicious or compromised tenant therefore chooses the host
+        the client connects to — including internal or link-local
+        addresses (server-side request forgery) — and, because redirects
+        are followed by default, can bounce the request onward from there.
+        Any header on the injected ``http_client`` is sent along, and
+        ``httpx`` strips only ``Authorization`` on a cross-origin redirect,
+        not custom headers or cookies. Two consequences: (1) do not put
+        credentials on the injected client, or they may leak to a host the
+        API names; (2) if you fetch attachments from tenants you do not
+        trust, run this client where it cannot reach sensitive internal
+        endpoints, and consider an ``http_client`` with
+        ``follow_redirects=False``.
+
+        No response-size bounds. The client streams downloads to disk in
+        chunks (large files never load fully into memory), but neither
+        downloads nor JSON list responses are capped: a hostile or broken
+        endpoint can exhaust disk (downloads) or memory (a listing page is
+        parsed whole). Bounding response size is the caller's
+        responsibility, alongside retries, caching, and rate limiting —
+        enforce it in the injected ``http_client`` or around the call.
 
     Example:
         >>> with CivicClerkClient("exampletown") as client:
@@ -72,6 +114,12 @@ class CivicClerkClient:
         http_client: httpx.Client | None = None,
         min_request_interval: float = 0.25,
     ) -> None:
+        if not _TENANT_PATTERN.match(tenant):
+            raise ValueError(
+                f"invalid tenant {tenant!r}: expected a single subdomain label "
+                "(letters, digits, and interior hyphens, up to 63 characters), "
+                "as in 'exampletown' — not a URL, dotted host, or path"
+            )
         self.tenant = tenant
         self.base_url = f"https://{tenant}.api.civicclerk.com/v1"
         self._min_interval = min_request_interval
@@ -226,6 +274,13 @@ class CivicClerkClient:
         requested with the same HTTP client. Expired URLs surface as
         ``APIStatusError``.
 
+        Security:
+            ``download_url`` is taken verbatim from the tenant's API
+            response, so the tenant chooses the host this connects to
+            (redirects included) — see the class ``Security`` note on
+            server-side request forgery and injected-client credentials
+            before fetching attachments from tenants you do not trust.
+
         Args:
             attachment: The attachment to open; must have a
                 ``download_url``.
@@ -325,6 +380,14 @@ class CivicClerkClient:
         API, requested with the same injected HTTP client. Signed URLs
         expire; a request against an expired one surfaces as
         ``APIStatusError``, not a distinct error type.
+
+        Security:
+            ``download_url`` comes verbatim from the tenant's API response,
+            so the tenant chooses the host this connects to (redirects
+            included). See the class ``Security`` note on server-side
+            request forgery, injected-client credentials, and the absence
+            of a response-size cap before downloading from untrusted
+            tenants.
 
         The one-liner for when you already know the name you want. When the
         name depends on the file's type, open the stream with
