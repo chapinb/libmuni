@@ -47,9 +47,14 @@ from libcivicclerk import CivicClerkClient
 http = httpx.Client(
     timeout=30.0,
     transport=httpx.HTTPTransport(retries=3),  # connect-level retries
+    follow_redirects=True,  # file streams may redirect to storage
 )
 client = CivicClerkClient("exampletown", http_client=http)
 ```
+
+The client the library creates for you follows redirects already; an
+injected client keeps httpx's default of *not* following them, so set
+`follow_redirects=True` unless you have a reason not to.
 
 For response-level retries with backoff and a development cache, consider
 wrapping your client with [careful](https://pypi.org/project/careful/) —

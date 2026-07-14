@@ -97,7 +97,8 @@ These do not exist. If a snippet uses one, it is wrong.
 - **No search.** There is no full-text or keyword query method. Filtering is
   the three `iter_events` arguments and nothing more.
 - **No retries, caching, or backoff.** Only `min_request_interval` pacing.
-  Retries and caching are caller policy — inject a configured `httpx.Client`.
+  Retries and caching are caller policy — inject a configured `httpx.Client`
+  (built with `follow_redirects=True`; the client's own default does).
 - **No timezone data.** The API does not publish one; see the first trap.
 - **No resumable downloads.** Upstream ignores `Range` and rejects `HEAD`, so
   a failed download restarts from zero.
