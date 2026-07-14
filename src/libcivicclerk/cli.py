@@ -8,6 +8,8 @@ library raises a ``CivicClerkError``, 2 for usage errors (argparse).
 """
 
 import argparse
+import datetime as dt
+import itertools
 import json
 import sys
 from collections.abc import Callable
@@ -54,6 +56,34 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_common_arguments(categories)
     categories.set_defaults(command=_run_categories)
 
+    events = subparsers.add_parser("events", help="list meetings, oldest first")
+    _add_common_arguments(events)
+    events.add_argument(
+        "--category", type=int, metavar="ID", help="only this board/committee (see categories)"
+    )
+    events.add_argument(
+        "--from",
+        dest="from_date",
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="only meetings on or after this date",
+    )
+    events.add_argument(
+        "--to",
+        dest="to_date",
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="only meetings on or before this date",
+    )
+    events.add_argument(
+        "--limit",
+        type=int,
+        default=15,
+        metavar="N",
+        help="print at most N meetings; 0 means everything (default: 15, one API page)",
+    )
+    events.set_defaults(command=_run_events)
+
     return parser
 
 
@@ -73,6 +103,21 @@ def _run_categories(client: CivicClerkClient, args: argparse.Namespace) -> None:
         return
     for category in categories:
         print(f"{category.id:>6}  {category.name or '(unnamed)'}")
+
+
+def _run_events(client: CivicClerkClient, args: argparse.Namespace) -> None:
+    events = client.iter_events(
+        category_id=args.category, from_date=args.from_date, to_date=args.to_date
+    )
+    if args.limit:
+        events = itertools.islice(events, args.limit)
+    if args.json:
+        _print_json([event.raw for event in events])
+        return
+    for event in events:
+        when = event.starts_at.strftime("%Y-%m-%d %H:%M")
+        agenda = f"  agenda:{event.agenda_id}" if event.agenda_id else ""
+        print(f"{when}  {event.name or '(untitled)'}{agenda}")
 
 
 def _print_json(payload: object) -> None:
