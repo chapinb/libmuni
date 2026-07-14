@@ -65,6 +65,13 @@ with CivicClerkClient("exampletown") as client:
 Every model keeps the raw API object in `.raw`, so fields the library
 doesn't model yet are still reachable.
 
+### Command line
+
+The package installs a `civicclerk` command that demonstrates the library
+against any tenant — `civicclerk demo exampletown` narrates a tour of the
+whole surface, and subcommands (`categories`, `events`, `agenda`, `text`,
+`download`) mirror the client methods, with `--json` exposing raw payloads.
+
 ### Datetimes are local wall-clock time
 
 The API stamps a `Z` (UTC) suffix on datetimes that are actually local

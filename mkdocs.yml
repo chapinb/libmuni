@@ -30,6 +30,7 @@ extra:
 nav:
   - Home: index.md
   - Usage guide: usage.md
+  - Command line: cli.md
   - API reference: api.md
   - Architecture decisions: decisions.md
 
