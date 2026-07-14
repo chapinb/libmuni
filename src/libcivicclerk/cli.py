@@ -30,15 +30,24 @@ def main(argv: list[str] | None = None, *, client_factory: ClientFactory = Civic
             tests can supply mock transports.
 
     Returns:
-        The process exit code.
+        The process exit code: 0 on success, 1 for a ``CivicClerkError``
+        or an ``OSError`` writing output (one line on stderr, no
+        traceback), 130 on Ctrl-C. Argparse exits the process with 2 on
+        usage errors before this returns.
     """
     args = _build_parser().parse_args(argv)
     try:
         with client_factory(args.tenant) as client:
             args.command(client, args)
-    except CivicClerkError as exc:
+    except BrokenPipeError:
+        # The reader closed the pipe (e.g. `| head`) — expected, not noisy.
+        return 1
+    except (CivicClerkError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print("interrupted", file=sys.stderr)
+        return 130
     return 0
 
 
@@ -78,7 +87,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     events.add_argument(
         "--limit",
-        type=int,
+        type=_nonnegative_int,
         default=15,
         metavar="N",
         help="print at most N meetings; 0 means everything (default: 15, one API page)",
@@ -93,12 +102,12 @@ def _build_parser() -> argparse.ArgumentParser:
     text = subparsers.add_parser(
         "text", help="print the API's best-effort text extraction of a file"
     )
-    text.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    _add_tenant(text)
     text.add_argument("file_id", type=int, help="published file id")
     text.set_defaults(command=_run_text)
 
     download = subparsers.add_parser("download", help="download a meeting-level file")
-    download.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    _add_tenant(download)
     download.add_argument("file_id", type=int, help="published file id")
     download.add_argument("destination", type=Path, help="local path to write the file to")
     download.set_defaults(command=_run_download)
@@ -106,19 +115,39 @@ def _build_parser() -> argparse.ArgumentParser:
     demo = subparsers.add_parser(
         "demo", help="narrated tour of the library surface against a tenant"
     )
-    demo.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    _add_tenant(demo)
     demo.set_defaults(command=_run_demo)
 
     return parser
 
 
-def _add_common_arguments(subparser: argparse.ArgumentParser) -> None:
+def _nonnegative_int(value: str) -> int:
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("must be 0 or greater")
+    return number
+
+
+def _add_tenant(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+
+
+def _add_common_arguments(subparser: argparse.ArgumentParser) -> None:
+    _add_tenant(subparser)
     subparser.add_argument(
         "--json",
         action="store_true",
         help="print raw API payloads instead of formatted text",
     )
+
+
+def _format_category(category) -> str:
+    return f"{category.id:>6}  {category.name or '(unnamed)'}"
+
+
+def _format_event(event) -> str:
+    agenda = f"  agenda:{event.agenda_id}" if event.agenda_id else ""
+    return f"{event.starts_at:%Y-%m-%d %H:%M}  {event.name or '(untitled)'}{agenda}"
 
 
 def _run_categories(client: CivicClerkClient, args: argparse.Namespace) -> None:
@@ -127,7 +156,7 @@ def _run_categories(client: CivicClerkClient, args: argparse.Namespace) -> None:
         _print_json([category.raw for category in categories])
         return
     for category in categories:
-        print(f"{category.id:>6}  {category.name or '(unnamed)'}")
+        print(_format_category(category))
 
 
 def _run_events(client: CivicClerkClient, args: argparse.Namespace) -> None:
@@ -140,9 +169,7 @@ def _run_events(client: CivicClerkClient, args: argparse.Namespace) -> None:
         _print_json([event.raw for event in events])
         return
     for event in events:
-        when = event.starts_at.strftime("%Y-%m-%d %H:%M")
-        agenda = f"  agenda:{event.agenda_id}" if event.agenda_id else ""
-        print(f"{when}  {event.name or '(untitled)'}{agenda}")
+        print(_format_event(event))
 
 
 def _run_agenda(client: CivicClerkClient, args: argparse.Namespace) -> None:
@@ -153,12 +180,12 @@ def _run_agenda(client: CivicClerkClient, args: argparse.Namespace) -> None:
     _render_agenda_items(agenda.items, depth=0)
 
 
-def _render_agenda_items(items: list, depth: int, indent: str = "") -> None:
+def _render_agenda_items(items: list, depth: int) -> None:
     for item in items:
         count = len(item.attachments)
         suffix = f"  [{count} attachment{'s' if count != 1 else ''}]" if count else ""
-        print(f"{indent}{'  ' * depth}{item.name or '(untitled)'}{suffix}")
-        _render_agenda_items(item.children, depth + 1, indent)
+        print(f"{'  ' * depth}{item.name or '(untitled)'}{suffix}")
+        _render_agenda_items(item.children, depth + 1)
 
 
 def _run_text(client: CivicClerkClient, args: argparse.Namespace) -> None:
@@ -176,26 +203,38 @@ def _run_download(client: CivicClerkClient, args: argparse.Namespace) -> None:
     print(f"saved {destination}")
 
 
+_DEMO_PREVIEW = 5
+"""Entries shown per demo step — enough to get the idea."""
+
+_DEMO_SCAN = 15
+"""Meetings fetched (one API page): the tour previews 5 but scans deeper
+for one with an agenda and one with files, so sparse tenants still get
+the full walk."""
+
+
 def _run_demo(client: CivicClerkClient, args: argparse.Namespace) -> None:
     _step("Boards and committees", "client.get_event_categories()")
     categories = client.get_event_categories()
-    for category in categories[:5]:
-        print(f"  {category.id:>6}  {category.name or '(unnamed)'}")
-    if len(categories) > 5:
-        print(f"  ... and {len(categories) - 5} more")
+    for category in categories[:_DEMO_PREVIEW]:
+        print(f"  {_format_category(category)}")
+    if len(categories) > _DEMO_PREVIEW:
+        print(f"  ... and {len(categories) - _DEMO_PREVIEW} more")
 
     today = dt.date.today()
-    window = (today - dt.timedelta(days=60), today + dt.timedelta(days=60))
+    from_date = today - dt.timedelta(days=60)
+    to_date = today + dt.timedelta(days=60)
     _step(
         "Meetings within 60 days",
-        f"client.iter_events(from_date={window[0]!r}, to_date={window[1]!r})",
+        f"client.iter_events(from_date={from_date!r}, to_date={to_date!r})",
     )
-    events = list(itertools.islice(client.iter_events(from_date=window[0], to_date=window[1]), 15))
+    events = list(
+        itertools.islice(client.iter_events(from_date=from_date, to_date=to_date), _DEMO_SCAN)
+    )
     if not events:
         print("  this tenant has no meetings in the window — try the events subcommand")
         return
-    for event in events[:5]:
-        print(f"  {event.starts_at:%Y-%m-%d %H:%M}  {event.name or '(untitled)'}")
+    for event in events[:_DEMO_PREVIEW]:
+        print(f"  {_format_event(event)}")
 
     with_agenda = next((event for event in events if event.agenda_id), None)
     if with_agenda is None or with_agenda.agenda_id is None:
@@ -205,7 +244,7 @@ def _run_demo(client: CivicClerkClient, args: argparse.Namespace) -> None:
             f"Agenda of {with_agenda.name or 'that meeting'}",
             f"client.get_agenda({with_agenda.agenda_id})",
         )
-        _render_agenda_items(client.get_agenda(with_agenda.agenda_id).items, depth=0, indent="  ")
+        _render_agenda_items(client.get_agenda(with_agenda.agenda_id).items, depth=1)
 
     with_files = next((event for event in events if event.published_files), None)
     if with_files is None:
@@ -224,7 +263,8 @@ def _run_demo(client: CivicClerkClient, args: argparse.Namespace) -> None:
             print(f"  {snippet}{'...' if len(text) > 300 else ''}")
 
     print(
-        "\nEvery model keeps the raw API payload in .raw — try --json on any subcommand to see it."
+        "\nEvery model keeps the raw API payload in .raw — "
+        "try --json on the categories, events, or agenda subcommands to see it."
     )
 
 

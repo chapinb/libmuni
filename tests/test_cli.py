@@ -4,7 +4,7 @@ import json
 
 import httpx
 import pytest
-from conftest import load_fixture
+from conftest import load_fixture, mock_client
 
 from libcivicclerk import CivicClerkClient
 from libcivicclerk.cli import main
@@ -14,11 +14,7 @@ def factory_for(handler):
     """A client factory serving canned responses — the CLI's test seam."""
 
     def factory(tenant: str) -> CivicClerkClient:
-        return CivicClerkClient(
-            tenant,
-            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
-            min_request_interval=0,
-        )
+        return mock_client(handler, tenant=tenant)
 
     return factory
 
@@ -204,6 +200,54 @@ def test_download_writes_file_and_reports_destination(capsys, tmp_path):
     assert exit_code == 0
     assert destination.read_bytes() == b"%PDF-1.4 fake"
     assert str(destination) in capsys.readouterr().out
+
+
+# --- CLI-boundary failure modes ---
+
+
+def test_download_os_errors_are_clean_errors(capsys, tmp_path):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"%PDF-1.4 fake")
+
+    destination = tmp_path / "no" / "such" / "dir" / "packet.pdf"
+    exit_code = main(
+        ["download", "exampletown", "9001", str(destination)],
+        client_factory=factory_for(handler),
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "error:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_negative_limit_is_usage_error():
+    with pytest.raises(SystemExit) as excinfo:
+        main(["events", "exampletown", "--limit", "-5"])
+
+    assert excinfo.value.code == 2
+
+
+def test_keyboard_interrupt_exits_quietly(capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise KeyboardInterrupt
+
+    exit_code = main(["categories", "exampletown"], client_factory=factory_for(handler))
+
+    captured = capsys.readouterr()
+    assert exit_code == 130
+    assert "interrupted" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_broken_pipe_exits_without_noise(capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise BrokenPipeError
+
+    exit_code = main(["categories", "exampletown"], client_factory=factory_for(handler))
+
+    assert exit_code == 1
+    assert "Traceback" not in capsys.readouterr().err
 
 
 # --- demo tour (slice 4) ---

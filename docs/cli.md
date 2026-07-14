@@ -45,8 +45,11 @@ civicclerk events exampletown --limit 3 --json | jq '.[0].eventName'
 
 ## Exit codes
 
-- `0` — success (including "no text available", which is within the API's
-  contract)
-- `1` — a library error (`CivicClerkError`): unknown tenant, missing id,
-  network failure; one line on stderr, no traceback
-- `2` — usage error (bad arguments)
+- `0` — success. This includes `text` printing "no text available": the
+  API's extraction is best-effort and answers unknown ids the same way,
+  so absence is within its contract.
+- `1` — a library error (unknown tenant, an id the API reports missing,
+  network failure) or a filesystem error writing a download; one line on
+  stderr, no traceback.
+- `2` — usage error (bad arguments).
+- `130` — interrupted with Ctrl-C.
