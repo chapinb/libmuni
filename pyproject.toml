@@ -27,6 +27,9 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/chapinb/libcivicclerk"
+Documentation = "https://chapinb.com/libcivicclerk/"
+Issues = "https://github.com/chapinb/libcivicclerk/issues"
+Changelog = "https://github.com/chapinb/libcivicclerk/blob/main/CHANGELOG.md"
 
 [project.scripts]
 civicclerk = "libcivicclerk.cli:main"
