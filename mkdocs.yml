@@ -63,7 +63,7 @@ plugins:
       # deploy workflow sets LLMS_BASE_URL to the version it is publishing so an
       # archived release's llms files link to its own docs, not to latest.
       base_url:
-        !ENV [LLMS_BASE_URL, "https://chapinb.github.io/libcivicclerk/latest/"]
+        !ENV [LLMS_BASE_URL, "https://chapinb.com/libcivicclerk/latest/"]
       full_output: llms-full.txt
       markdown_description: >
         Unofficial read-only Python client for the CivicClerk public

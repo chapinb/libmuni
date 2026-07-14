@@ -95,16 +95,16 @@ materials has an empty `published_files`, not an exception.
 
 ## Documentation
 
-The [cheat sheet](https://chapinb.github.io/libcivicclerk/latest/cheatsheet/)
+The [cheat sheet](https://chapinb.com/libcivicclerk/latest/cheatsheet/)
 is the fastest way into the
-[full documentation](https://chapinb.github.io/libcivicclerk/latest/) — the
+[full documentation](https://chapinb.com/libcivicclerk/latest/) — the
 whole public surface, the traps, and what the library deliberately does not
 do.
 
 Using an LLM or coding agent? Hand it
-[llms-full.txt](https://chapinb.github.io/libcivicclerk/latest/llms-full.txt),
+[llms-full.txt](https://chapinb.com/libcivicclerk/latest/llms-full.txt),
 which is the entire documentation set — signatures included — as a single
-file. An [llms.txt](https://chapinb.github.io/libcivicclerk/latest/llms.txt)
+file. An [llms.txt](https://chapinb.com/libcivicclerk/latest/llms.txt)
 index is served alongside it in the [llms.txt](https://llmstxt.org/) format.
 
 ## Versioning
@@ -129,7 +129,7 @@ uv run --group docs mkdocs serve   # preview the docs site locally
 ```
 
 Documentation lives at
-[chapinb.github.io/libcivicclerk](https://chapinb.github.io/libcivicclerk/).
+[chapinb.com/libcivicclerk](https://chapinb.com/libcivicclerk/).
 Pushing a `v*` tag deploys that version's docs with a version selector
 (GitHub Pages must be set to serve the `gh-pages` branch once).
 

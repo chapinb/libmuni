@@ -129,6 +129,6 @@ These do not exist. If a snippet uses one, it is wrong.
 ## For LLMs and agents
 
 The full documentation set is served as a single file:
-[`llms-full.txt`](https://chapinb.github.io/libcivicclerk/latest/llms-full.txt).
+[`llms-full.txt`](https://chapinb.com/libcivicclerk/latest/llms-full.txt).
 An index in the [llms.txt](https://llmstxt.org/) format is at
-[`llms.txt`](https://chapinb.github.io/libcivicclerk/latest/llms.txt).
+[`llms.txt`](https://chapinb.com/libcivicclerk/latest/llms.txt).
