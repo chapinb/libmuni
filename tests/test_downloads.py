@@ -35,6 +35,16 @@ def recording_bytes_client(body: bytes, seen_requests: list[httpx.Request]) -> C
     return mock_client(handler)
 
 
+def test_owned_client_follows_redirects():
+    # File streams are commonly served as a redirect to storage, so the
+    # client the library creates for itself must follow them.
+    client = CivicClerkClient("exampletown")
+    try:
+        assert client._http.follow_redirects is True
+    finally:
+        client.close()
+
+
 # --- download_file: meeting-level files by PublishedFile.file_id ---
 
 

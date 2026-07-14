@@ -43,7 +43,10 @@ class CivicClerkClient:
             ``https://exampletown.api.civicclerk.com``.
         http_client: Optional preconfigured ``httpx.Client`` (for
             timeouts, proxies, or transport injection in tests). When
-            omitted, the client creates and owns one; either way, calling
+            omitted, the client creates and owns one that follows
+            redirects — attachment downloads are commonly served as a
+            redirect to file storage, so an injected client should set
+            ``follow_redirects=True`` as well. Either way, calling
             ``close`` (or using ``with``) closes it. Unless the
             caller set a ``User-Agent`` header, it is replaced with the
             library's ``libcivicclerk/{version}`` identifier.
@@ -71,7 +74,7 @@ class CivicClerkClient:
         self.base_url = f"https://{tenant}.api.civicclerk.com/v1"
         self._min_interval = min_request_interval
         self._next_request_at = 0.0
-        self._http = http_client if http_client is not None else httpx.Client()
+        self._http = http_client if http_client is not None else httpx.Client(follow_redirects=True)
         if self._http.headers.get("user-agent") in ("", _HTTPX_DEFAULT_USER_AGENT):
             self._http.headers["user-agent"] = _USER_AGENT
 
