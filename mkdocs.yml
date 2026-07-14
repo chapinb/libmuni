@@ -58,9 +58,12 @@ plugins:
   # markdown, which is what turns the API reference into real signatures
   # instead of `:::` directives.
   - llmstxt:
-      # site_url is the domain root, but mike serves the built docs under a
-      # version alias — without this every generated link would 404.
-      base_url: https://chapinb.github.io/libcivicclerk/latest/
+      # site_url is the domain root, but mike serves each build under a version
+      # directory — without a base_url every generated link would 404. The
+      # deploy workflow sets LLMS_BASE_URL to the version it is publishing so an
+      # archived release's llms files link to its own docs, not to latest.
+      base_url:
+        !ENV [LLMS_BASE_URL, "https://chapinb.github.io/libcivicclerk/latest/"]
       full_output: llms-full.txt
       markdown_description: >
         Unofficial read-only Python client for the CivicClerk public

@@ -26,5 +26,8 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
+          # Pin the generated llms.txt links to the version being published, so
+          # an archived release's files never point at a newer one.
+          export LLMS_BASE_URL="https://chapinb.github.io/libcivicclerk/${TAG#v}/"
           uv run --group docs mike deploy --push --update-aliases "${TAG#v}" latest
           uv run --group docs mike set-default --push latest
