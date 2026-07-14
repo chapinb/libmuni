@@ -16,3 +16,6 @@ build/
 # Editors
 .idea/
 .vscode/
+
+# Docs build output
+site/
