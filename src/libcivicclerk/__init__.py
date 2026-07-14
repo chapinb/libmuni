@@ -26,6 +26,7 @@ from libcivicclerk.models import (
     EventLocation,
     PublishedFile,
 )
+from libcivicclerk.streams import FileStream
 
 __version__ = _distribution_version("libcivicclerk")
 
@@ -39,6 +40,7 @@ __all__ = [
     "Event",
     "EventCategory",
     "EventLocation",
+    "FileStream",
     "NetworkError",
     "NotFoundError",
     "PayloadError",
