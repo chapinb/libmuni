@@ -27,3 +27,16 @@ escape hatch. See `docs/decisions.md` for architecture decisions and
   the only runtime dependency.
 - Read-only, unauthenticated API surface only. Callers own retries, caching,
   and rate limiting.
+
+## Changelog and releases
+
+- Keep `CHANGELOG.md` (Keep a Changelog format) current: every `FFF` (feature)
+  and `B -` (bug fix) commit adds an entry under `## [Unreleased]`;
+  `t -` / `d -` / `R -` / `a -` commits do not require one.
+- `pyproject.toml`'s version reflects the last *released* version. Bump it only
+  in the release commit, in the same commit that renames `## [Unreleased]` to
+  `## [x.y.z] - <date>`. The `changelog-version` hook fails if a released
+  changelog heading and the packaged version disagree.
+- Release steps: rename `[Unreleased]` to a dated `[x.y.z]` section, add a fresh
+  empty `[Unreleased]`, bump the version in `pyproject.toml`, update the compare
+  links, commit, then tag `vx.y.z`.
