@@ -499,9 +499,19 @@ class CivicClerkClient:
         """
         response = self._get(url, params=params, not_found_error=not_found_error)
         try:
-            return response.json()
-        except json.JSONDecodeError as exc:
+            payload = response.json()
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise PayloadError(f"response from {url} is not valid JSON") from exc
+        if not isinstance(payload, dict):
+            raise PayloadError(
+                f"response from {url} must be a JSON object, got {type(payload).__name__}"
+            )
+        value = payload.get("value", [])
+        if not isinstance(value, list):
+            raise PayloadError(
+                f"response from {url} field 'value' must be an array, got {type(value).__name__}"
+            )
+        return payload
 
     def _get(
         self,

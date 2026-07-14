@@ -48,6 +48,29 @@ def test_non_json_success_body_raises_payload_error():
         client.get_event_categories()
 
 
+@pytest.mark.parametrize("payload", [None, [], 42, "categories"])
+def test_non_object_json_success_body_raises_payload_error(payload):
+    client = mock_client(lambda request: httpx.Response(200, json=payload))
+
+    with pytest.raises(PayloadError):
+        client.get_event_categories()
+
+
+def test_non_utf8_json_success_body_raises_payload_error():
+    client = mock_client(lambda request: httpx.Response(200, content=b"\xff"))
+
+    with pytest.raises(PayloadError):
+        client.get_event_categories()
+
+
+@pytest.mark.parametrize("value", [None, {}, 7, "categories"])
+def test_non_array_collection_value_raises_payload_error(value):
+    client = mock_client(lambda request: httpx.Response(200, json={"value": value}))
+
+    with pytest.raises(PayloadError):
+        client.get_event_categories()
+
+
 def test_missing_load_bearing_field_raises_payload_error_naming_it():
     with pytest.raises(PayloadError) as excinfo:
         EventCategory.from_api({"categoryDesc": "Town Council"})
