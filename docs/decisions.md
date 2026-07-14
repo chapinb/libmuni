@@ -7,8 +7,8 @@ returning typed models with a raw-payload escape hatch.
 
 The API is undocumented and its behavior (pagination, optional fields) is
 still being learned; explicit I/O keeps every HTTP request visible so callers
-own retries, caching, and rate limiting, and pure parse functions stay
-testable against recorded fixtures. A lazy-fetching domain layer
+own retries and caching, and pure parse functions stay testable against
+recorded fixtures. A lazy-fetching domain layer
 (Site → Board → Meeting) hides I/O and locks in design guesses too early —
 it can be added later on top of the client without breaking anything.
 
@@ -30,6 +30,31 @@ parse functions keep the runtime dependency footprint at httpx alone and put
 each lenient/strict decision in plain sight. Library semver covers the
 library surface only; upstream drift is detected by an opt-in live contract
 test suite and handled in releases.
+
+## Polite pacing by default; retries and caching stay caller-owned
+
+The client enforces a minimum interval between requests
+(`min_request_interval`, default 0.25 s, `0` disables); it still ships no
+retries or caching.
+
+CivicClerk tenants are small municipal servers with no observed rate
+enforcement, and one unfiltered listing call can fan out to hundreds of
+paged requests — a docs-only recommendation protects the service only when
+users read docs. Well-regarded clients of unenforced services pace
+proactively by default (PyGithub `seconds_between_requests=0.25`, added
+after users tripped abuse detection in the wild; scrapelib, built for
+state-legislature scraping, defaults to 60 requests/minute), and every
+request now carries this library's name in its User-Agent, so misbehavior
+is attributable to the library. The gate lives in the client (not the
+httpx transport) so injecting a client for unrelated reasons does not
+silently shed politeness — disabling is an explicit constructor argument.
+Retries and caching remain caller policy: they are the genuinely subtle,
+use-case-dependent pieces, and a configured `httpx.Client` (or a wrapper
+library such as `careful`) can be injected to supply them. `careful` was
+considered for the pacing itself and rejected inside the library: pre-1.0
+API, adds a transitive dependency (structlog) against the httpx-only
+footprint, and two of its three features are ones we deliberately leave to
+callers.
 
 ## Naive wall-clock datetimes — no upstream timezone source exists
 

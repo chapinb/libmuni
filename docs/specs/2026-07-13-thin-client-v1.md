@@ -211,6 +211,11 @@ Developer stories (the library surface):
   `list(iter_events(...))` with no added behavior; one canonical listing
   method keeps the surface minimal pre-1.0. Callers collect with
   `list(...)`.
+- 2026-07-14: Post-v1 feedback review: polite pacing added
+  (`min_request_interval=0.25`, `0` disables), narrowing the v1 "callers
+  own retries, caching, and rate limiting" decision — see
+  docs/decisions.md for the full rationale (PyGithub/scrapelib precedent;
+  `careful` evaluated and rejected as a dependency).
 
 ## Deferred
 

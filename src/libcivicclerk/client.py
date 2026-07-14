@@ -3,13 +3,15 @@
 One client per tenant; every public method performs exactly one HTTP request
 — except listings, where the API serves fixed pages of 15 and the client
 follows continuation links (one request per page, stated in each docstring).
-Results are typed models from :mod:`libcivicclerk.models`. The client adds
-no caching, retries, or rate limiting — callers own their HTTP policy, and
-can inject a configured :class:`httpx.Client` to apply it.
+Results are typed models from :mod:`libcivicclerk.models`. The client
+paces its requests politely by default (see ``min_request_interval``) but
+adds no caching or retries — callers own that policy, and can inject a
+configured :class:`httpx.Client` to apply it.
 """
 
 import datetime as dt
 import json
+import time
 from collections.abc import Iterator
 from importlib.metadata import version as _distribution_version
 from pathlib import Path
@@ -45,6 +47,12 @@ class CivicClerkClient:
             :meth:`close` (or using ``with``) closes it. Unless the
             caller set a ``User-Agent`` header, it is replaced with the
             library's ``libcivicclerk/{version}`` identifier.
+        min_request_interval: Minimum seconds between requests — the
+            client sleeps as needed so consecutive requests (including
+            pagination and downloads) stay at least this far apart.
+            Defaults to ``0.25`` (at most ~4 requests/second) to stay
+            polite toward small municipal servers; pass ``0`` to disable
+            and own your request rate entirely.
 
     Example:
         >>> with CivicClerkClient("exampletown") as client:
@@ -52,9 +60,17 @@ class CivicClerkClient:
         ...         print(category.id, category.name)
     """
 
-    def __init__(self, tenant: str, *, http_client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        tenant: str,
+        *,
+        http_client: httpx.Client | None = None,
+        min_request_interval: float = 0.25,
+    ) -> None:
         self.tenant = tenant
         self.base_url = f"https://{tenant}.api.civicclerk.com/v1"
+        self._min_interval = min_request_interval
+        self._next_request_at = 0.0
         self._http = http_client if http_client is not None else httpx.Client()
         if self._http.headers.get("user-agent") in ("", _HTTPX_DEFAULT_USER_AGENT):
             self._http.headers["user-agent"] = _USER_AGENT
@@ -250,6 +266,22 @@ class CivicClerkClient:
         response = self._get(url, not_found_error=NotFoundError)
         return response.text or None
 
+    def _pace(self) -> None:
+        """Sleep until ``min_request_interval`` has elapsed since the last request.
+
+        The polite-by-default request gate: both request funnels
+        (:meth:`_get` and :meth:`_stream_to_file`) call this first, so no
+        two requests start closer together than the configured interval.
+        Blocks the calling thread; a zero (or negative) interval disables
+        pacing entirely.
+        """
+        if self._min_interval <= 0:
+            return
+        delay = self._next_request_at - time.monotonic()
+        if delay > 0:
+            time.sleep(delay)
+        self._next_request_at = time.monotonic() + self._min_interval
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._http.close()
@@ -304,6 +336,7 @@ class CivicClerkClient:
         not_found_error: type[APIStatusError],
     ) -> httpx.Response:
         """GET ``url``, translating failures into this library's errors."""
+        self._pace()
         try:
             response = self._http.get(url, params=params)
         except httpx.TransportError as exc:
@@ -369,6 +402,7 @@ class CivicClerkClient:
             APIStatusError: If the response is another error status.
             NetworkError: If the request fails at the network level.
         """
+        self._pace()
         wrote_any_bytes = False
         opened_destination = False
         try:

@@ -109,10 +109,11 @@ prek run --all-files     # lint, format, type check (what CI enforces)
 
 This project is not affiliated with, endorsed by, or supported by CivicPlus
 or the CivicClerk product. "CivicClerk" is used only to describe the API this
-library talks to. The library reads publicly available government records;
-please use it politely (modest request rates) and note that any
-redistribution of downloaded documents is the responsibility of downstream
-applications.
+library talks to. The library reads publicly available government records
+from small municipal servers, and paces its requests politely by default
+(at most ~4 requests/second; see `min_request_interval` to tune or disable).
+Any redistribution of downloaded documents is the responsibility of
+downstream applications.
 
 ## License
 

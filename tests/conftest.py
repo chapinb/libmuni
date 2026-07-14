@@ -19,9 +19,15 @@ def load_fixture(name: str) -> dict:
 def mock_client(
     handler: Callable[[httpx.Request], httpx.Response], *, tenant: str = "exampletown"
 ) -> CivicClerkClient:
-    """A client for ``tenant`` answered by ``handler`` — no real HTTP."""
+    """A client for ``tenant`` answered by ``handler`` — no real HTTP.
+
+    Pacing is disabled so multi-request tests don't really sleep; the
+    pacing behavior itself is covered by test_rate_limit.py.
+    """
     transport = httpx.MockTransport(handler)
-    return CivicClerkClient(tenant, http_client=httpx.Client(transport=transport))
+    return CivicClerkClient(
+        tenant, http_client=httpx.Client(transport=transport), min_request_interval=0
+    )
 
 
 def recording_client(payload: dict, seen_requests: list[httpx.Request]) -> CivicClerkClient:
