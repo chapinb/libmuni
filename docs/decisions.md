@@ -31,6 +31,23 @@ each lenient/strict decision in plain sight. Library semver covers the
 library surface only; upstream drift is detected by an opt-in live contract
 test suite and handled in releases.
 
+## Naive wall-clock datetimes — no upstream timezone source exists
+
+Model datetimes are naive local wall-clock values, and the library makes no
+attempt to attach a timezone.
+
+The API stamps a `Z` (UTC) suffix on datetimes that are actually local
+wall-clock times (a 7 pm meeting arrives as `19:00:00Z`), and nothing
+upstream reliably declares the tenant's timezone: the OData `$metadata`
+shows the only timezone-typed fields are `secondaryIanaTimeZone` /
+`secondaryAbbreviatedTimeZone` on events — observed empty across five
+public tenants in five US states (2026-07-14) — and the `Settings` entity
+carries only portal display labels. Deriving a zone from the event
+location's address would bake in per-tenant geography guesses, which the
+tenant-generic rule forbids. Callers who need aware datetimes attach the
+municipality's timezone themselves; re-verify with the live suite before
+revisiting.
+
 ## Tenant-generic by construction
 
 The client takes the CivicClerk site subdomain as its only required
