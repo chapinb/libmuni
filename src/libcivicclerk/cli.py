@@ -103,6 +103,12 @@ def _build_parser() -> argparse.ArgumentParser:
     download.add_argument("destination", type=Path, help="local path to write the file to")
     download.set_defaults(command=_run_download)
 
+    demo = subparsers.add_parser(
+        "demo", help="narrated tour of the library surface against a tenant"
+    )
+    demo.add_argument("tenant", help="portal subdomain, e.g. exampletown")
+    demo.set_defaults(command=_run_demo)
+
     return parser
 
 
@@ -144,15 +150,15 @@ def _run_agenda(client: CivicClerkClient, args: argparse.Namespace) -> None:
     if args.json:
         _print_json(agenda.raw)
         return
+    _render_agenda_items(agenda.items, depth=0)
 
-    def render(items: list, depth: int) -> None:
-        for item in items:
-            count = len(item.attachments)
-            suffix = f"  [{count} attachment{'s' if count != 1 else ''}]" if count else ""
-            print(f"{'  ' * depth}{item.name or '(untitled)'}{suffix}")
-            render(item.children, depth + 1)
 
-    render(agenda.items, 0)
+def _render_agenda_items(items: list, depth: int, indent: str = "") -> None:
+    for item in items:
+        count = len(item.attachments)
+        suffix = f"  [{count} attachment{'s' if count != 1 else ''}]" if count else ""
+        print(f"{indent}{'  ' * depth}{item.name or '(untitled)'}{suffix}")
+        _render_agenda_items(item.children, depth + 1, indent)
 
 
 def _run_text(client: CivicClerkClient, args: argparse.Namespace) -> None:
@@ -168,6 +174,64 @@ def _run_text(client: CivicClerkClient, args: argparse.Namespace) -> None:
 def _run_download(client: CivicClerkClient, args: argparse.Namespace) -> None:
     destination = client.download_file(args.file_id, args.destination)
     print(f"saved {destination}")
+
+
+def _run_demo(client: CivicClerkClient, args: argparse.Namespace) -> None:
+    _step("Boards and committees", "client.get_event_categories()")
+    categories = client.get_event_categories()
+    for category in categories[:5]:
+        print(f"  {category.id:>6}  {category.name or '(unnamed)'}")
+    if len(categories) > 5:
+        print(f"  ... and {len(categories) - 5} more")
+
+    today = dt.date.today()
+    window = (today - dt.timedelta(days=60), today + dt.timedelta(days=60))
+    _step(
+        "Meetings within 60 days",
+        f"client.iter_events(from_date={window[0]!r}, to_date={window[1]!r})",
+    )
+    events = list(itertools.islice(client.iter_events(from_date=window[0], to_date=window[1]), 15))
+    if not events:
+        print("  this tenant has no meetings in the window — try the events subcommand")
+        return
+    for event in events[:5]:
+        print(f"  {event.starts_at:%Y-%m-%d %H:%M}  {event.name or '(untitled)'}")
+
+    with_agenda = next((event for event in events if event.agenda_id), None)
+    if with_agenda is None or with_agenda.agenda_id is None:
+        print("\nno published agenda in these meetings — skipping the agenda tour")
+    else:
+        _step(
+            f"Agenda of {with_agenda.name or 'that meeting'}",
+            f"client.get_agenda({with_agenda.agenda_id})",
+        )
+        _render_agenda_items(client.get_agenda(with_agenda.agenda_id).items, depth=0, indent="  ")
+
+    with_files = next((event for event in events if event.published_files), None)
+    if with_files is None:
+        print("\nno published files in these meetings — skipping text extraction")
+    else:
+        file = with_files.published_files[0]
+        _step(
+            f"Text of {file.name or file.file_type or 'a document'}",
+            f"client.get_file_text({file.file_id})",
+        )
+        text = client.get_file_text(file.file_id)
+        if text is None:
+            print("  (the API returned no text for this file — a best-effort feature)")
+        else:
+            snippet = text[:300]
+            print(f"  {snippet}{'...' if len(text) > 300 else ''}")
+
+    print(
+        "\nEvery model keeps the raw API payload in .raw — try --json on any subcommand to see it."
+    )
+
+
+def _step(title: str, python: str) -> None:
+    """Print a demo step heading with its equivalent library call."""
+    print(f"\n== {title}")
+    print(f">>> {python}")
 
 
 def _print_json(payload: object) -> None:

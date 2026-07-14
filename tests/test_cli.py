@@ -204,3 +204,51 @@ def test_download_writes_file_and_reports_destination(capsys, tmp_path):
     assert exit_code == 0
     assert destination.read_bytes() == b"%PDF-1.4 fake"
     assert str(destination) in capsys.readouterr().out
+
+
+# --- demo tour (slice 4) ---
+
+
+def tenant_handler(request: httpx.Request) -> httpx.Response:
+    """Route requests like a real tenant with full data."""
+    path = request.url.path
+    if "EventCategories" in path:
+        return httpx.Response(200, json=load_fixture("event_categories.json"))
+    if "GetMeetingFileStream" in path:
+        return httpx.Response(200, text="MINUTES OF THE JUNE MEETING")
+    if "/Meetings/" in path:
+        return httpx.Response(200, json=load_fixture("agenda.json"))
+    return httpx.Response(200, json=load_fixture("events.json"))
+
+
+def test_demo_walks_the_full_surface(capsys):
+    exit_code = main(["demo", "exampletown"], client_factory=factory_for(tenant_handler))
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    # every step ran, with its Python equivalent narrated
+    assert "client.get_event_categories()" in out
+    assert "Town Council" in out
+    assert "client.iter_events(" in out
+    assert "client.get_agenda(7301)" in out
+    assert "NEW BUSINESS" in out
+    assert "client.get_file_text(9001)" in out
+    assert "MINUTES OF THE JUNE MEETING" in out
+    assert ".raw" in out  # closing pointer to the escape hatch
+
+
+def test_demo_skips_gracefully_when_tenant_has_no_extras(capsys):
+    bare_event = {"id": 1, "eventDate": "2026-07-01T19:00:00Z", "eventName": "Budget Hearing"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "EventCategories" in request.url.path:
+            return httpx.Response(200, json=load_fixture("event_categories.json"))
+        return httpx.Response(200, json={"value": [bare_event]})
+
+    exit_code = main(["demo", "exampletown"], client_factory=factory_for(handler))
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Budget Hearing" in out
+    assert "no published agenda" in out
+    assert "no published files" in out
