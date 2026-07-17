@@ -132,3 +132,38 @@ replays — otherwise every chunked body would silently lose its first chunk.
 `download_file` and `download_attachment` are retained and reimplemented on
 the context managers. They remain the right one-liner for "I already know the
 name I want", and removing them would be a breaking change that buys nothing.
+
+## Vendor clients in one package, unified by jurisdiction rather than a shared model
+
+`libmuni` ships one thin typed client per municipal software vendor
+(`libmuni.civicclerk`, later `libmuni.municode`, `libmuni.civicplus`) in a
+single distribution, and deliberately defines no cross-vendor domain model.
+
+A town's public record is split across vendors — CivicClerk publishes
+meetings, Municode publishes the charter and ordinances, CivicPlus runs the
+city site — so what unifies them is the jurisdiction, not a schema. A
+`Meeting` and an `Ordinance` share no field worth abstracting, and a common
+supertype would flatten both; the shared surface here is a kind of client,
+not a kind of record. Separate distributions per vendor were rejected as
+premature at one maintainer and an httpx-only footprint — splitting a package
+later is mechanical, while merging published names is not. Callers who want a
+normalized cross-platform record should target the Open Civic Data spec,
+which already exists and is maintained; emitting it stays a caller or
+application concern, because OCD requires a timezone this library has no
+source for (see "Naive wall-clock datetimes").
+
+## Exception root now, shared core deferred until a second client
+
+`MuniError` is the root of every exception the library raises, and each
+vendor's hierarchy descends from it (`CivicClerkError(MuniError)`). No shared
+HTTP, streaming, or parsing core exists yet — each vendor client owns its own.
+
+The exception root is the one piece of shared surface that is free to add
+before the first release and a breaking change after it: callers of a
+multi-vendor library need a single base to catch. Everything else that
+currently looks generic — the pacing gate, User-Agent injection, `FileStream`,
+DNS-label tenant validation — is generic only by coincidence of there being a
+single example. Municode publishes codified text with no tenant subdomain and
+no OData pagination, so a core extracted today would be designed against a
+sample size of one. The second client reveals the real seam; until then,
+duplication is cheaper than the wrong abstraction.
