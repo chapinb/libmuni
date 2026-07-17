@@ -15,7 +15,7 @@ import os
 
 import pytest
 
-from libcivicclerk import CivicClerkClient, NotFoundError, UnknownTenantError
+from libmuni.civicclerk import CivicClerkClient, NotFoundError, UnknownTenantError
 
 TENANT = os.environ.get("CIVICCLERK_TEST_TENANT")
 

@@ -5,8 +5,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-import libcivicclerk.client
-from libcivicclerk import CivicClerkClient
+import libmuni.civicclerk.client
+from libmuni.civicclerk import CivicClerkClient
 
 
 def default_paced_client() -> CivicClerkClient:
@@ -37,7 +37,7 @@ class FakeClock:
 @pytest.fixture
 def clock(monkeypatch) -> FakeClock:
     fake = FakeClock()
-    monkeypatch.setattr(libcivicclerk.client, "time", fake)
+    monkeypatch.setattr(libmuni.civicclerk.client, "time", fake)
     return fake
 
 

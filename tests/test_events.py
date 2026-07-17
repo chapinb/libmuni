@@ -5,7 +5,7 @@ import datetime as dt
 import httpx
 from conftest import load_fixture, mock_client, recording_client
 
-from libcivicclerk import Event
+from libmuni.civicclerk import Event
 
 # --- acceptance: the calendar story ---
 

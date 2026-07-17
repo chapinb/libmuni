@@ -6,8 +6,8 @@ import httpx
 import pytest
 from conftest import load_fixture, mock_client
 
-from libcivicclerk import CivicClerkClient
-from libcivicclerk.cli import main
+from libmuni.civicclerk import CivicClerkClient
+from libmuni.civicclerk.cli import main
 
 
 def factory_for(handler):

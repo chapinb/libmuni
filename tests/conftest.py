@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from libcivicclerk import CivicClerkClient
+from libmuni.civicclerk import CivicClerkClient
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

@@ -7,7 +7,7 @@ host. Construction rejects anything that is not a single DNS label.
 
 import pytest
 
-from libcivicclerk import CivicClerkClient
+from libmuni.civicclerk import CivicClerkClient
 
 
 @pytest.mark.parametrize(

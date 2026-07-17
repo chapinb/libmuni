@@ -20,7 +20,7 @@ from pathlib import Path, PurePosixPath
 
 import httpx
 
-from libcivicclerk.errors import NotFoundError, _network_error, _safe_url
+from libmuni.civicclerk.errors import NotFoundError, _network_error, _safe_url
 
 
 class FileStream:

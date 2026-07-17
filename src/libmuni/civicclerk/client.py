@@ -3,7 +3,7 @@
 One client per tenant; every public method performs exactly one HTTP request
 — except listings, where the API serves fixed pages of 15 and the client
 follows continuation links (one request per page, stated in each docstring).
-Results are typed models from ``libcivicclerk.models``. The client
+Results are typed models from ``libmuni.civicclerk.models``. The client
 paces its requests politely by default (see ``min_request_interval``) but
 adds no caching or retries — callers own that policy, and can inject a
 configured ``httpx.Client`` to apply it.
@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 
-from libcivicclerk.errors import (
+from libmuni.civicclerk.errors import (
     APIStatusError,
     NotFoundError,
     PayloadError,
@@ -29,12 +29,11 @@ from libcivicclerk.errors import (
     _network_error,
     _safe_url,
 )
-from libcivicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
-from libcivicclerk.streams import FileStream
+from libmuni.civicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
+from libmuni.civicclerk.streams import FileStream
 
 _USER_AGENT = (
-    f"libcivicclerk/{_distribution_version('libcivicclerk')} "
-    "(+https://github.com/chapinb/libcivicclerk)"
+    f"libmuni/{_distribution_version('libmuni')} (+https://github.com/openmunidata/libmuni)"
 )
 _HTTPX_DEFAULT_USER_AGENT = f"python-httpx/{httpx.__version__}"
 
@@ -64,7 +63,7 @@ class CivicClerkClient:
             ``follow_redirects=True`` as well. Either way, calling
             ``close`` (or using ``with``) closes it. Unless the
             caller set a ``User-Agent`` header, it is replaced with the
-            library's ``libcivicclerk/{version}`` identifier. Do not
+            library's ``libmuni/{version}`` identifier. Do not
             attach ambient credentials (an ``Authorization`` header, an
             API key, cookies) to this client — see Security below.
         min_request_interval: Minimum seconds between requests — the

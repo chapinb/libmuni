@@ -3,7 +3,7 @@
 import httpx
 from conftest import load_fixture, mock_client, recording_client
 
-from libcivicclerk import EventCategory
+from libmuni.civicclerk import EventCategory
 
 # --- acceptance: the full path from client call to typed models ---
 

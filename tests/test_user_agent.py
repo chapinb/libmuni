@@ -3,12 +3,10 @@
 import httpx
 from conftest import recording_client
 
-import libcivicclerk
-from libcivicclerk import CivicClerkClient
+import libmuni
+from libmuni.civicclerk import CivicClerkClient
 
-LIBRARY_USER_AGENT = (
-    f"libcivicclerk/{libcivicclerk.__version__} (+https://github.com/chapinb/libcivicclerk)"
-)
+LIBRARY_USER_AGENT = f"libmuni/{libmuni.__version__} (+https://github.com/openmunidata/libmuni)"
 
 
 def test_requests_carry_library_user_agent():
@@ -46,6 +44,6 @@ def test_caller_set_user_agent_is_preserved():
 
 
 def test_version_is_a_release_string():
-    major, minor, *_ = libcivicclerk.__version__.split(".")
+    major, minor, *_ = libmuni.__version__.split(".")
     assert major.isdigit()
     assert minor.isdigit()

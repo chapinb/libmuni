@@ -13,7 +13,7 @@ import httpx
 import pytest
 from conftest import mock_client
 
-from libcivicclerk import (
+from libmuni.civicclerk import (
     AgendaAttachment,
     APIStatusError,
     CivicClerkClient,

@@ -1,15 +1,13 @@
 """Read-only Python client for the CivicClerk public meeting-portal API.
 
 CivicClerk is a meeting-portal platform used by many municipalities to
-publish meeting calendars, agendas, and documents. This library provides a
+publish meeting calendars, agendas, and documents. This package provides a
 thin, typed client over the public (unauthenticated) API at
 ``https://{tenant}.api.civicclerk.com/v1``.
 """
 
-from importlib.metadata import version as _distribution_version
-
-from libcivicclerk.client import CivicClerkClient
-from libcivicclerk.errors import (
+from libmuni.civicclerk.client import CivicClerkClient
+from libmuni.civicclerk.errors import (
     APIStatusError,
     CivicClerkError,
     NetworkError,
@@ -17,7 +15,7 @@ from libcivicclerk.errors import (
     PayloadError,
     UnknownTenantError,
 )
-from libcivicclerk.models import (
+from libmuni.civicclerk.models import (
     Agenda,
     AgendaAttachment,
     AgendaItem,
@@ -26,9 +24,7 @@ from libcivicclerk.models import (
     EventLocation,
     PublishedFile,
 )
-from libcivicclerk.streams import FileStream
-
-__version__ = _distribution_version("libcivicclerk")
+from libmuni.civicclerk.streams import FileStream
 
 __all__ = [
     "APIStatusError",
@@ -46,5 +42,4 @@ __all__ = [
     "PayloadError",
     "PublishedFile",
     "UnknownTenantError",
-    "__version__",
 ]

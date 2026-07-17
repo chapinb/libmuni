@@ -16,7 +16,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
-from libcivicclerk.errors import PayloadError, require
+from libmuni.civicclerk.errors import PayloadError, require
 
 
 def _guarded_parse(from_api):

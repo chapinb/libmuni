@@ -7,7 +7,7 @@ scalar where a list belongs) must keep that promise.
 
 import pytest
 
-from libcivicclerk import Agenda, CivicClerkError, Event, EventCategory, PayloadError
+from libmuni.civicclerk import Agenda, CivicClerkError, Event, EventCategory, PayloadError
 
 
 def test_non_numeric_id_raises_payload_error():

@@ -15,8 +15,8 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from libcivicclerk import CivicClerkClient
-from libcivicclerk.errors import CivicClerkError
+from libmuni.civicclerk import CivicClerkClient
+from libmuni.civicclerk.errors import CivicClerkError
 
 ClientFactory = Callable[[str], CivicClerkClient]
 

@@ -6,8 +6,8 @@ import httpx
 import pytest
 from conftest import load_fixture, mock_client, recording_client
 
-from libcivicclerk import Agenda, CivicClerkClient, NotFoundError
-from libcivicclerk.models import AgendaItem
+from libmuni.civicclerk import Agenda, CivicClerkClient, NotFoundError
+from libmuni.civicclerk.models import AgendaItem
 
 
 def status_client(status_code: int, payload: dict | None = None) -> CivicClerkClient:
