@@ -2,14 +2,22 @@ name: Docs
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main] # unreleased docs, published under the `dev` alias
+    tags: ["v*"] # a release, published under its version and `latest`
 
 permissions:
   contents: write # mike commits the built site to the gh-pages branch
 
+# Every deploy pushes to gh-pages; serialize so a release and a main push (or
+# two main pushes) never race that push. Do not cancel an in-flight deploy —
+# a half-finished mike push would leave gh-pages inconsistent.
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: deploy versioned docs to GitHub Pages
+    name: deploy docs to GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -23,6 +31,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Deploy this version as latest
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           TAG: ${{ github.ref_name }}
         run: |
@@ -31,3 +40,10 @@ jobs:
           export LLMS_BASE_URL="https://chapinb.com/libmuni/${TAG#v}/"
           uv run --group docs mike deploy --push --update-aliases "${TAG#v}" latest
           uv run --group docs mike set-default --push latest
+      - name: Deploy main as dev
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # `dev` tracks the main branch; it never becomes the default, so the
+          # site root keeps redirecting to the newest release (`latest`).
+          export LLMS_BASE_URL="https://chapinb.com/libmuni/dev/"
+          uv run --group docs mike deploy --push dev
