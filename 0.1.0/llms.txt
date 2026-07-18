@@ -1,0 +1,22 @@
+# libmuni
+
+> Unofficial read-only Python client for the CivicClerk public meeting-portal API
+
+Unofficial read-only Python client for the CivicClerk public meeting-portal API. A thin typed client: every public method maps to one HTTP request, and models are frozen dataclasses with a `raw` escape hatch. No authentication, no write operations, no async client.
+
+
+## Getting started
+
+- [Home](https://chapinb.com/libmuni/0.1.0/index.md): Install, quickstart, and what the library is for.
+- [Cheat sheet](https://chapinb.com/libmuni/0.1.0/cheatsheet/index.md): The complete public surface, the two traps that bite callers, and what the library deliberately does not do.
+
+## Guides
+
+- [Usage guide](https://chapinb.com/libmuni/0.1.0/usage/index.md): Datetimes, request pacing, listing meetings, downloads, and errors.
+- [Command line](https://chapinb.com/libmuni/0.1.0/cli/index.md): The `muni-cli civicclerk` commands that mirror the library.
+
+## Reference
+
+- [API reference](https://chapinb.com/libmuni/0.1.0/api/index.md): Every public class and method, with signatures.
+- [Architecture decisions](https://chapinb.com/libmuni/0.1.0/decisions/index.md): Why the library is shaped the way it is.
+
