@@ -203,3 +203,17 @@ def test_event_tolerates_minimal_payload():
     assert event.location is None
     assert event.published_files == []
     assert event.raw == {"id": 1, "eventDate": "2026-01-05T19:00:00Z"}
+
+
+def test_event_coerces_string_numeric_ids_to_int():
+    event = Event.from_api(
+        {
+            "id": 1,
+            "eventDate": "2026-01-05T19:00:00Z",
+            "categoryId": "12",
+            "agendaId": "7",
+        }
+    )
+
+    assert event.category_id == 12
+    assert event.agenda_id == 7

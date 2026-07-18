@@ -12,14 +12,18 @@ promises.
 
 import datetime as dt
 import functools
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypeVar
 
 from libmuni.civicclerk.errors import PayloadError, require
 
+_ParseResult = TypeVar("_ParseResult")
 
-def _guarded_parse(from_api):
+
+def _guarded_parse(
+    from_api: Callable[[Any, dict[str, Any]], _ParseResult],
+) -> Callable[[Any, dict[str, Any]], _ParseResult]:
     """Surface malformed field shapes as ``PayloadError``.
 
     Wraps a ``from_api`` classmethod so a field that is present but the
@@ -30,7 +34,7 @@ def _guarded_parse(from_api):
     """
 
     @functools.wraps(from_api)
-    def parse(cls, raw):
+    def parse(cls: Any, raw: dict[str, Any]) -> _ParseResult:
         try:
             return from_api(cls, raw)
         except (AttributeError, TypeError, ValueError) as exc:
@@ -49,6 +53,17 @@ def _text_or_none(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _int_or_none(value: Any) -> int | None:
+    """Coerce an optional integer field, keeping the ``int | None`` hint honest.
+
+    The upstream API is untyped, so a numeric field may arrive as a string; a
+    present value is coerced to ``int`` while an absent one stays ``None``. A
+    non-numeric value raises, which ``_guarded_parse`` surfaces as a
+    ``PayloadError``.
+    """
+    return None if value is None else int(value)
 
 
 def _naive_datetime_or_none(value: Any) -> dt.datetime | None:
@@ -114,7 +129,7 @@ class EventCategory:
         return cls(
             id=int(require(raw, "id", "EventCategory")),
             name=_text_or_none(raw.get("categoryDesc")),
-            sort_order=raw.get("sortOrder"),
+            sort_order=_int_or_none(raw.get("sortOrder")),
             is_public=None if is_public is None else bool(is_public),
             parent_id=None if parent_id in (None, -1) else int(parent_id),
             raw=raw,
@@ -295,8 +310,8 @@ class Event:
         if starts_at is None:
             raise PayloadError(f"Event {raw.get('id')} has unparseable eventDate")
 
-        agenda_id = raw.get("agendaId")
-        category_id = raw.get("categoryId")
+        agenda_id = _int_or_none(raw.get("agendaId"))
+        category_id = _int_or_none(raw.get("categoryId"))
         duration = dt.timedelta(
             hours=raw.get("durationHrs") or 0, minutes=raw.get("durationMin") or 0
         )
@@ -305,9 +320,9 @@ class Event:
             starts_at=starts_at,
             name=_text_or_none(raw.get("eventName")),
             description=_text_or_none(raw.get("eventDescription")),
-            category_id=None if category_id is None else int(category_id),
+            category_id=category_id,
             category_name=_text_or_none(raw.get("categoryName")),
-            agenda_id=agenda_id if agenda_id else None,
+            agenda_id=agenda_id or None,
             agenda_name=_text_or_none(raw.get("agendaName")),
             duration=duration or None,
             location=EventLocation.from_api(raw.get("eventLocation") or {}),
@@ -408,7 +423,7 @@ class AgendaItem:
             item_id=int(require(raw, "id", "AgendaItem")),
             name=_text_or_none(raw.get("agendaObjectItemName")),
             is_section=bool(raw.get("isSection")),
-            sort_order=raw.get("sortOrder"),
+            sort_order=_int_or_none(raw.get("sortOrder")),
             attachments=[
                 AgendaAttachment.from_api(entry) for entry in (raw.get("attachmentsList") or [])
             ],
