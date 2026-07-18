@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # The workflows pin actions to commit SHAs; without this the pins go stale and
+  # miss security patches. Dependabot bumps the SHA (and its version comment).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
