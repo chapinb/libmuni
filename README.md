@@ -143,9 +143,17 @@ This project is not affiliated with, endorsed by, or supported by CivicPlus
 or the CivicClerk product. "CivicClerk" is used only to describe the API this
 library talks to. The library reads publicly available government records
 from small municipal servers, and paces its requests politely by default
-(at most ~4 requests/second; see `min_request_interval` to tune or disable).
+(at most ~1 request/second; see `min_request_interval` to tune or disable).
 Any redistribution of downloaded documents is the responsibility of
 downstream applications.
+
+**Acceptable use.** The portals are governed by the platform vendor's and
+each jurisdiction's terms of use, which bind anyone accessing them and can
+change at any time — this library neither reproduces nor tracks them. They
+commonly restrict automated access and cap total requests over a window;
+the default pacing bounds the instantaneous rate but not total volume.
+Read the terms for the portals you query and keep your usage within them.
+See [Acceptable use](docs/usage.md#acceptable-use) for details.
 
 ## License
 

@@ -13,7 +13,7 @@ with CivicClerkClient("exampletown") as client:  # the portal subdomain
     ...
 ```
 
-`CivicClerkClient(tenant, *, http_client=None, min_request_interval=0.25)`.
+`CivicClerkClient(tenant, *, http_client=None, min_request_interval=1.0)`.
 Use it as a context manager, or call `close()` yourself. Each fetching method
 below costs exactly one HTTP request — except `iter_events`, which spends one
 per page it is asked for, and `close()`, which talks to nobody.

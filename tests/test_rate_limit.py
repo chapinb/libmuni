@@ -47,7 +47,7 @@ def test_back_to_back_requests_are_paced_by_default(clock):
     client.get_event_categories()
     client.get_event_categories()
 
-    assert clock.sleeps == [pytest.approx(0.25)]  # first request never waits
+    assert clock.sleeps == [pytest.approx(1.0)]  # first request never waits
 
 
 def test_no_wait_when_interval_already_elapsed(clock):
@@ -99,4 +99,4 @@ def test_downloads_are_paced_too(clock, tmp_path: Path):
     client.download_file(1, tmp_path / "a.pdf")
     client.download_file(2, tmp_path / "b.pdf")
 
-    assert clock.sleeps == [pytest.approx(0.25)]
+    assert clock.sleeps == [pytest.approx(1.0)]

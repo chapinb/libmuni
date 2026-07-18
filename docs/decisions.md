@@ -34,18 +34,26 @@ test suite and handled in releases.
 ## Polite pacing by default; retries and caching stay caller-owned
 
 The client enforces a minimum interval between requests
-(`min_request_interval`, default 0.25 s, `0` disables); it still ships no
+(`min_request_interval`, default 1.0 s, `0` disables); it still ships no
 retries or caching.
 
 CivicClerk tenants are small municipal servers with no observed rate
 enforcement, and one unfiltered listing call can fan out to hundreds of
 paged requests — a docs-only recommendation protects the service only when
 users read docs. Well-regarded clients of unenforced services pace
-proactively by default (PyGithub `seconds_between_requests=0.25`, added
-after users tripped abuse detection in the wild; scrapelib, built for
-state-legislature scraping, defaults to 60 requests/minute), and every
-request now carries this library's name in its User-Agent, so misbehavior
-is attributable to the library. The gate lives in the client (not the
+proactively by default (scrapelib, built for state-legislature scraping,
+defaults to 60 requests/minute; PyGithub added
+`seconds_between_requests=0.25` after users tripped abuse detection in the
+wild), and every request now carries this library's name in its
+User-Agent, so misbehavior is attributable to the library. The default of
+1 s (≈1 request/second) matches scrapelib and stays within what the
+platform terms of use frame as a rate "a human can reasonably produce";
+the faster PyGithub value targets a large service's abuse detection, not a
+tiny municipal server, so it is not the right anchor here. Pacing bounds
+the instantaneous rate only; the terms' per-day request ceiling is a
+volume limit that pacing cannot enforce, so it stays caller-owned and
+documented (`docs/usage.md`) rather than encoded — the numbers are the
+operator's to set and change, and duplicating them invites drift. The gate lives in the client (not the
 httpx transport) so injecting a client for unrelated reasons does not
 silently shed politeness — disabling is an explicit constructor argument.
 Retries and caching remain caller policy: they are the genuinely subtle,

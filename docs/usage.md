@@ -29,8 +29,10 @@ conversion needed.
 
 The client is polite by default: consecutive requests (including
 pagination pages and downloads) are spaced at least `min_request_interval`
-seconds apart — 0.25 s out of the box, i.e. at most ~4 requests/second
-against what are typically small municipal servers.
+seconds apart — 1 s out of the box, i.e. at most ~1 request/second
+against what are typically small municipal servers, a rate a human
+browsing the portal could produce. Pacing bounds the instantaneous rate
+only, not total volume — see [Acceptable use](#acceptable-use) below.
 
 ```python
 client = CivicClerkClient("exampletown", min_request_interval=0)  # you own the rate
@@ -68,6 +70,23 @@ For response-level retries with backoff and a development cache, consider
 wrapping your client with [careful](https://pypi.org/project/careful/) —
 a library built for exactly this kind of polite scraping — and injecting
 the result.
+
+## Acceptable use
+
+The portals this library reads are operated under the platform vendor's
+and the individual jurisdiction's terms of use, which bind anyone
+accessing them — no account required. Those terms commonly restrict
+automated access and cap total requests over a window (for example, a
+daily page-request ceiling with penalties above it), and they can change
+at any time. This library does not reproduce or track them: read the
+terms for the portals you query and keep your usage within them.
+
+The default pacing keeps the instantaneous rate to roughly what a human
+browsing the portal would produce, but it does **not** bound total
+volume — a single unfiltered listing can fan out to hundreds of paged
+requests, and repeated runs add up. Staying under any per-day or
+per-window limit is the caller's responsibility: filter listings, cache
+results, and space out repeated runs.
 
 ## Listing meetings
 

@@ -67,9 +67,13 @@ class CivicClerkClient:
         min_request_interval: Minimum seconds between requests — the
             client sleeps as needed so consecutive requests (including
             pagination and downloads) stay at least this far apart.
-            Defaults to ``0.25`` (at most ~4 requests/second) to stay
-            polite toward small municipal servers; pass ``0`` to disable
-            and own your request rate entirely.
+            Defaults to ``1.0`` (at most ~1 request/second) to stay
+            polite toward small municipal servers and within a rate a
+            human browsing the portal could produce; pass ``0`` to
+            disable and own your request rate entirely. Pacing bounds
+            the instantaneous rate only, not total volume — the portal
+            operator's terms of use may also cap requests per day, which
+            remains the caller's responsibility.
 
     Raises:
         ValueError: If ``tenant`` is not a single valid DNS label.
@@ -112,7 +116,7 @@ class CivicClerkClient:
         tenant: str,
         *,
         http_client: httpx.Client | None = None,
-        min_request_interval: float = 0.25,
+        min_request_interval: float = 1.0,
     ) -> None:
         if not _TENANT_PATTERN.match(tenant):
             raise ValueError(
