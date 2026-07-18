@@ -167,5 +167,6 @@ users to break, no deprecation shim, and no redirect package.
    docs site builds — update prose, nav, URLs, and the thin-client ADR's "one
    client class" phrasing. Touches `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`,
    `docs/*.md`, `docs/decisions.md`, `mkdocs.yml`, `pyproject.toml` urls.
-6. **Stale build artifacts.** `dist/` carries no `libcivicclerk` wheel or
-   sdist. Touches `dist/`.
+6. [x] **Stale build artifacts.** `dist/` carries no `libcivicclerk` wheel or
+   sdist. Touches `dist/`. (No commit — `dist/` is gitignored; the deletion is
+   local housekeeping only.)
