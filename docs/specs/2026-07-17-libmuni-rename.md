@@ -66,8 +66,10 @@ users to break, no deprecation shim, and no redirect package.
   keyword-only optional params, docstrings stating units, timezone semantics,
   and failure modes.
 - Repository URL for the User-Agent and `project.urls`:
-  `https://github.com/openmunidata/libmuni`. Docs URL moves off
-  `chapinb.com/libcivicclerk`.
+  `https://github.com/chapinb/libmuni`. The `openmunidata` org is deferred
+  until the maintainer is ready to stand it up, so the repo stays in the
+  personal namespace under its new name for now. Docs URL moves off
+  `chapinb.com/libcivicclerk` to `chapinb.com/libmuni/`.
 
 ## Environment
 
@@ -137,7 +139,7 @@ users to break, no deprecation shim, and no redirect package.
    rename the distribution, repoint internal and test imports, and update the
    User-Agent to `libmuni/{version}` with the new repo URL. Atomic by
    necessity. Touches `src/`, `pyproject.toml`, all nine test modules.
-2. **Exception root.** `except libmuni.MuniError` catches a CivicClerk
+2. [x] **Exception root.** `except libmuni.MuniError` catches a CivicClerk
    `NotFoundError`, and `CivicClerkError` still catches what it did — add
    `src/libmuni/errors.py`, reparent the vendor hierarchy, export from
    `src/libmuni/__init__.py`. Touches `src/libmuni/errors.py` (new),

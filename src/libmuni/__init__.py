@@ -9,8 +9,11 @@ schema. See ``docs/decisions.md``.
 
 from importlib.metadata import version as _distribution_version
 
+from libmuni.errors import MuniError
+
 __version__ = _distribution_version("libmuni")
 
 __all__ = [
+    "MuniError",
     "__version__",
 ]

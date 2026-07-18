@@ -1,7 +1,9 @@
-"""Typed errors raised by this library.
+"""Typed errors raised by the CivicClerk client.
 
-Every error the library raises subclasses ``CivicClerkError``, so
+Every error this client raises subclasses ``CivicClerkError``, so
 ``except CivicClerkError`` catches anything that can go wrong in a call.
+``CivicClerkError`` in turn subclasses ``libmuni.MuniError``, so a caller
+spanning several platforms can catch every vendor's failures at once.
 Underlying ``httpx`` exceptions are attached as ``__cause__``.
 
 Absent optional data is never an error: an event without materials yields
@@ -11,9 +13,11 @@ empty lists and ``None`` fields, not an exception.
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from libmuni.errors import MuniError
 
-class CivicClerkError(Exception):
-    """Base class for every error this library raises."""
+
+class CivicClerkError(MuniError):
+    """Base class for every error the CivicClerk client raises."""
 
 
 class NetworkError(CivicClerkError):

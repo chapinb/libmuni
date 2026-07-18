@@ -4,6 +4,7 @@ import httpx
 import pytest
 from conftest import mock_client
 
+from libmuni import MuniError
 from libmuni.civicclerk import (
     APIStatusError,
     CivicClerkError,
@@ -107,3 +108,13 @@ def test_missing_load_bearing_field_raises_payload_error_naming_it():
 def test_all_library_errors_share_one_base():
     for error_type in (APIStatusError, NetworkError, PayloadError, UnknownTenantError):
         assert issubclass(error_type, CivicClerkError)
+
+
+def test_civicclerk_errors_are_catchable_as_muni_errors():
+    # A cross-platform base lets callers catch any vendor's failure uniformly.
+    client = mock_client(lambda request: httpx.Response(404))
+
+    with pytest.raises(MuniError):
+        client.get_event_categories()
+
+    assert issubclass(CivicClerkError, MuniError)
