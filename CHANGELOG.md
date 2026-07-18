@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   command-line interface that routes to per-platform subcommands
   (`muni civicclerk ...`).
 
+### Fixed
+
+- A 404 encountered while following a pagination continuation link in
+  `iter_events` now raises `APIStatusError` rather than `UnknownTenantError`,
+  since the first page already proved the tenant exists.
+
 ### Security
 
 - Tenant is validated as a single DNS label before any request is made, so a

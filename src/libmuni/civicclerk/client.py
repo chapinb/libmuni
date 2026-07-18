@@ -201,7 +201,9 @@ class CivicClerkClient:
             next_link = payload.get("@odata.nextLink")
             if not next_link:
                 return
-            payload = self._get_json_url(next_link)
+            # Page 1 already proved the tenant exists, so a 404 on a
+            # continuation link is a generic API error, not an unknown tenant.
+            payload = self._get_json_url(next_link, not_found_error=APIStatusError)
 
     def get_agenda(self, agenda_id: int) -> Agenda:
         """Fetch the structured agenda (sections, items, attachments) for a meeting.

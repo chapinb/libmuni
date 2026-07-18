@@ -3,9 +3,10 @@
 import datetime as dt
 
 import httpx
+import pytest
 from conftest import load_fixture, mock_client, recording_client
 
-from libmuni.civicclerk import Event
+from libmuni.civicclerk import APIStatusError, Event, UnknownTenantError
 
 # --- acceptance: the calendar story ---
 
@@ -153,6 +154,23 @@ def test_iter_events_follows_next_links_to_completion():
     assert [e.id for e in events] == [1, 2, 3, 4]
     assert len(seen) == 3
     assert "$skiptoken=page-2" in seen[2]
+
+
+def test_iter_events_reports_continuation_404_as_generic_api_error():
+    base = "https://exampletown.api.civicclerk.com/v1/Events"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("$skiptoken"):
+            return httpx.Response(404)
+        page = {"value": [event_stub(1)], "@odata.nextLink": f"{base}?$skiptoken=page-1"}
+        return httpx.Response(200, json=page)
+
+    client = mock_client(handler)
+
+    # Page 1 proved the tenant exists, so a later 404 is not an unknown tenant.
+    with pytest.raises(APIStatusError) as exc_info:
+        list(client.iter_events())
+    assert not isinstance(exc_info.value, UnknownTenantError)
 
 
 def test_iter_events_is_lazy_across_pages():
