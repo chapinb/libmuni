@@ -32,9 +32,7 @@ from libmuni.civicclerk.errors import (
 from libmuni.civicclerk.models import Agenda, AgendaAttachment, Event, EventCategory
 from libmuni.civicclerk.streams import FileStream
 
-_USER_AGENT = (
-    f"libmuni/{_distribution_version('libmuni')} (+https://github.com/openmunidata/libmuni)"
-)
+_USER_AGENT = f"libmuni/{_distribution_version('libmuni')} (+https://github.com/chapinb/libmuni)"
 _HTTPX_DEFAULT_USER_AGENT = f"python-httpx/{httpx.__version__}"
 
 _TENANT_PATTERN = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")

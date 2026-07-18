@@ -6,7 +6,7 @@ from conftest import recording_client
 import libmuni
 from libmuni.civicclerk import CivicClerkClient
 
-LIBRARY_USER_AGENT = f"libmuni/{libmuni.__version__} (+https://github.com/openmunidata/libmuni)"
+LIBRARY_USER_AGENT = f"libmuni/{libmuni.__version__} (+https://github.com/chapinb/libmuni)"
 
 
 def test_requests_carry_library_user_agent():
