@@ -13,7 +13,7 @@ import datetime as dt
 import json
 import re
 import time
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from contextlib import AbstractContextManager, contextmanager
 from importlib.metadata import version as _distribution_version
 from pathlib import Path
@@ -320,7 +320,7 @@ class CivicClerkClient:
         url: str,
         *,
         not_found_error: type[APIStatusError] = APIStatusError,
-    ) -> Iterator[FileStream]:
+    ) -> Generator[FileStream, None, None]:
         """Stream a GET response, yielding it as a ``FileStream``.
 
         The request funnel for every download path: paces the request,
@@ -470,7 +470,7 @@ class CivicClerkClient:
     def __enter__(self) -> "CivicClerkClient":
         return self
 
-    def __exit__(self, *exc_info: object) -> None:
+    def __exit__(self, *_exc_info: object) -> None:
         self.close()
 
     def _get_json(
