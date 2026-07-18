@@ -21,13 +21,21 @@ from libmuni.civicclerk.errors import CivicClerkError
 ClientFactory = Callable[[str], CivicClerkClient]
 
 
-def main(argv: list[str] | None = None, *, client_factory: ClientFactory = CivicClerkClient) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    client_factory: ClientFactory = CivicClerkClient,
+    prog: str = "civicclerk",
+) -> int:
     """Run the ``civicclerk`` command.
 
     Args:
         argv: Argument list (defaults to ``sys.argv[1:]``).
         client_factory: Builds the client for a tenant — injectable so
             tests can supply mock transports.
+        prog: Program name shown in usage and help text. Defaults to
+            ``civicclerk``; the ``muni`` launcher passes ``muni civicclerk``
+            so nested usage lines match how the command was invoked.
 
     Returns:
         The process exit code: 0 on success, 1 for a ``CivicClerkError``
@@ -35,7 +43,7 @@ def main(argv: list[str] | None = None, *, client_factory: ClientFactory = Civic
         traceback), 130 on Ctrl-C. Argparse exits the process with 2 on
         usage errors before this returns.
     """
-    args = _build_parser().parse_args(argv)
+    args = _build_parser(prog).parse_args(argv)
     try:
         with client_factory(args.tenant) as client:
             args.command(client, args)
@@ -51,9 +59,9 @@ def main(argv: list[str] | None = None, *, client_factory: ClientFactory = Civic
     return 0
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(prog: str = "civicclerk") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="civicclerk",
+        prog=prog,
         description=(
             "Explore a CivicClerk meeting portal from the command line. "
             "The tenant is the portal subdomain — the 'exampletown' in "

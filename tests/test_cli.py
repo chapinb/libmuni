@@ -8,6 +8,8 @@ from conftest import load_fixture, mock_client
 
 from libmuni.civicclerk import CivicClerkClient
 from libmuni.civicclerk.cli import main
+from libmuni.cli import _PLATFORMS as muni_platforms
+from libmuni.cli import main as muni_main
 
 
 def factory_for(handler):
@@ -296,3 +298,54 @@ def test_demo_skips_gracefully_when_tenant_has_no_extras(capsys):
     assert "Budget Hearing" in out
     assert "no published agenda" in out
     assert "no published files" in out
+
+
+# --- muni dispatcher (slice 3): routes to the platform CLI ---
+
+
+def test_muni_forwards_remaining_args_to_the_platform_cli(monkeypatch):
+    seen: list = []
+
+    def spy(argv):
+        seen.append(list(argv))
+        return 7
+
+    monkeypatch.setitem(muni_platforms, "civicclerk", spy)
+
+    exit_code = muni_main(["civicclerk", "events", "exampletown"])
+
+    assert exit_code == 7  # the platform CLI's exit code propagates
+    assert seen == [["events", "exampletown"]]  # platform token stripped
+
+
+def test_muni_lists_platforms_in_help(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        muni_main(["--help"])
+
+    assert excinfo.value.code == 0
+    assert "civicclerk" in capsys.readouterr().out
+
+
+def test_muni_no_platform_is_usage_error():
+    with pytest.raises(SystemExit) as excinfo:
+        muni_main([])
+
+    assert excinfo.value.code == 2
+
+
+def test_muni_unknown_platform_is_usage_error():
+    with pytest.raises(SystemExit) as excinfo:
+        muni_main(["frobnicate"])
+
+    assert excinfo.value.code == 2
+
+
+def test_muni_civicclerk_help_shows_verbs_under_muni_prog(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        muni_main(["civicclerk", "--help"])
+
+    out = capsys.readouterr().out
+    assert excinfo.value.code == 0
+    assert "muni civicclerk" in out  # usage line reflects how it was invoked
+    assert "categories" in out
+    assert "events" in out

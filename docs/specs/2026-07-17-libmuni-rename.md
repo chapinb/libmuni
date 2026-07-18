@@ -106,6 +106,17 @@ users to break, no deprecation shim, and no redirect package.
   changes in slice 1 because it is asserted by a moving test; the metadata URLs
   are prose-adjacent and travel with the docs pass, leaving them briefly
   inconsistent with the User-Agent.
+- **Repo owner stays `chapinb/libmuni`, not `openmunidata/libmuni`** (run-time,
+  slice 1 follow-up). The maintainer is not ready to stand up the org, so the
+  personal namespace holds the renamed repo for now; the `openmunidata` move is
+  deferred. The User-Agent committed in slice 1 was corrected from
+  `openmunidata` to `chapinb`.
+- **`muni` owns routing only; the vendor CLI keeps its verbs, help, and error
+  handling** (slice 3). The dispatcher parses just the platform token and hands
+  the remainder to the platform's `main`, keeping the vendor CLI a deep,
+  independently tested module. A `prog` argument threads `muni civicclerk` into
+  the vendor parser so nested usage lines match the invocation. The `civicclerk`
+  console script is replaced by a single `muni` entry point.
 
 ## Deferred
 
@@ -144,7 +155,7 @@ users to break, no deprecation shim, and no redirect package.
    `src/libmuni/errors.py`, reparent the vendor hierarchy, export from
    `src/libmuni/__init__.py`. Touches `src/libmuni/errors.py` (new),
    `src/libmuni/civicclerk/errors.py`, `tests/test_errors.py`.
-3. **CLI dispatcher.** `muni civicclerk events --tenant exampletown` produces
+3. [x] **CLI dispatcher.** `muni civicclerk events --tenant exampletown` produces
    what `civicclerk events` produced, and `muni --help` lists `civicclerk` —
    add a `muni` dispatcher delegating to the vendor subparser, repoint
    `[project.scripts]`. Touches `src/libmuni/cli.py` (new),
