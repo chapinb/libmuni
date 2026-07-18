@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-18
+
 ### Added
 
 - Initial public release: `libmuni`, read-only clients for municipal
@@ -17,21 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typed model layer (`Event`, `Agenda`, `AgendaItem`, `AgendaAttachment`,
   `EventCategory`, `EventLocation`, `PublishedFile`) as frozen dataclasses,
   each keeping the raw API payload in `.raw`.
-- `MuniError` as the root of every error the library raises; each platform's
-  hierarchy descends from it (`CivicClerkError` and its `APIStatusError`,
-  `UnknownTenantError`, `NotFoundError`, `NetworkError`, `PayloadError`), so a
-  caller spanning platforms can catch them all with one `except`.
+- `MuniError` as the root of every operational error the library raises; each
+  platform's hierarchy descends from it (`CivicClerkError` and its
+  `APIStatusError`, `UnknownTenantError`, `NotFoundError`, `NetworkError`,
+  `PayloadError`), so a caller spanning platforms can catch them all with one
+  `except`. Invalid arguments raise `ValueError` and local file writes raise
+  `OSError`, standard built-ins left outside the hierarchy.
 - `FileStream` for name-after-headers download workflows, exposing content
   type, extension, and size before the body is read.
 - Polite-by-default request pacing (`min_request_interval`) and a `muni-cli`
   command-line interface that routes to per-platform subcommands
   (`muni-cli civicclerk ...`).
-
-### Fixed
-
-- A 404 encountered while following a pagination continuation link in
-  `iter_events` now raises `APIStatusError` rather than `UnknownTenantError`,
-  since the first page already proved the tenant exists.
 
 ### Security
 
@@ -44,4 +42,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exception diagnostics redact URL credentials, query strings, and fragments
   so signed download URLs and continuation tokens do not enter routine logs.
 
-[Unreleased]: https://github.com/chapinb/libmuni/commits/main
+[Unreleased]: https://github.com/chapinb/libmuni/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/chapinb/libmuni/releases/tag/v0.1.0
