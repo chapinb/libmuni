@@ -7,23 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-07-14
-
 ### Added
 
-- Initial public release: `CivicClerkClient`, a read-only client for one
-  tenant's CivicClerk API — meeting categories, lazily paginated events with
-  date and category filters, structured agendas, and streaming file and
-  attachment downloads.
+- Initial public release: `libmuni`, read-only clients for municipal
+  government software platforms. The first platform is `libmuni.civicclerk`,
+  a client for one tenant's CivicClerk meeting API — meeting categories,
+  lazily paginated events with date and category filters, structured agendas,
+  and streaming file and attachment downloads.
 - Typed model layer (`Event`, `Agenda`, `AgendaItem`, `AgendaAttachment`,
   `EventCategory`, `EventLocation`, `PublishedFile`) as frozen dataclasses,
   each keeping the raw API payload in `.raw`.
-- Typed error hierarchy under `CivicClerkError` (`APIStatusError`,
-  `UnknownTenantError`, `NotFoundError`, `NetworkError`, `PayloadError`).
+- `MuniError` as the root of every error the library raises; each platform's
+  hierarchy descends from it (`CivicClerkError` and its `APIStatusError`,
+  `UnknownTenantError`, `NotFoundError`, `NetworkError`, `PayloadError`), so a
+  caller spanning platforms can catch them all with one `except`.
 - `FileStream` for name-after-headers download workflows, exposing content
   type, extension, and size before the body is read.
-- Polite-by-default request pacing (`min_request_interval`) and a `civicclerk`
-  demo CLI.
+- Polite-by-default request pacing (`min_request_interval`) and a `muni`
+  command-line interface that routes to per-platform subcommands
+  (`muni civicclerk ...`).
 
 ### Security
 
@@ -36,5 +38,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exception diagnostics redact URL credentials, query strings, and fragments
   so signed download URLs and continuation tokens do not enter routine logs.
 
-[Unreleased]: https://github.com/chapinb/libcivicclerk/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/chapinb/libcivicclerk/releases/tag/v0.1.0
+[Unreleased]: https://github.com/chapinb/libmuni/commits/main

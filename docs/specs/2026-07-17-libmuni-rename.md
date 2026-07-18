@@ -160,7 +160,7 @@ users to break, no deprecation shim, and no redirect package.
    add a `muni` dispatcher delegating to the vendor subparser, repoint
    `[project.scripts]`. Touches `src/libmuni/cli.py` (new),
    `src/libmuni/civicclerk/cli.py`, `pyproject.toml`, `tests/test_cli.py`.
-4. **Changelog.** `check_changelog_version` passes at `0.1.0` with only an
+4. [x] **Changelog.** `check_changelog_version` passes at `0.1.0` with only an
    `[Unreleased]` section — fold the phantom `[0.1.0]` entries back, drop the
    dated heading, fix compare links. Touches `CHANGELOG.md`.
 5. **Docs and metadata.** No `libcivicclerk` outside `docs/specs/`, and the
