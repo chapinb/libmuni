@@ -74,8 +74,9 @@ arrives as `None` or an empty list rather than failing.
 
 ## The errors
 
-Everything raised subclasses `CivicClerkError`, so one `except` clause
-catches the library whole.
+Every operational error subclasses `CivicClerkError`, so one `except` clause
+catches them whole. (Invalid arguments raise `ValueError` and local file
+writes raise `OSError` — standard built-ins, outside the hierarchy.)
 
 | Error | Raised when |
 | --- | --- |

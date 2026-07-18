@@ -26,9 +26,11 @@ reachable.
 
 ## Errors
 
-Every error any libmuni client raises subclasses `MuniError`. The CivicClerk
-client's errors subclass `CivicClerkError`, which in turn subclasses
-`MuniError`, so a caller spanning platforms can catch them all at once.
+Every operational error any libmuni client raises subclasses `MuniError`. The
+CivicClerk client's errors subclass `CivicClerkError`, which in turn subclasses
+`MuniError`, so a caller spanning platforms can catch them all at once. Two
+Python built-ins stay outside the hierarchy by design: `ValueError` for an
+invalid tenant or argument, and `OSError` for a failed local file write.
 
 ::: libmuni.MuniError
 

@@ -16,7 +16,7 @@ jurisdiction unifies them, not a schema — and every error subclasses
 - `uv run pytest` — tests (live suite deselected by default; `-m live` opts in)
 - `uv run ruff check` / `uv run ruff format --check` — lint / format
 - `uv run ty check` — type check
-- `prek run --all-files` — full hook suite (what CI enforces)
+- `uvx prek run --all-files` — full hook suite (what CI enforces)
 
 ## Constraints
 

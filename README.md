@@ -86,13 +86,17 @@ need aware datetimes, attach the municipality's timezone yourself.
 
 ### Errors
 
-Everything the library raises subclasses `CivicClerkError`:
+Every operational error subclasses `CivicClerkError`:
 
 - `UnknownTenantError` — the tenant subdomain doesn't exist (typo?)
 - `NotFoundError` — an id-parameterized lookup (agenda, file) has no data
 - `APIStatusError` — any other HTTP error status
 - `NetworkError` — DNS/connection/timeout failures
 - `PayloadError` — a response body the library can't use
+
+Two Python built-ins stay outside that hierarchy by design: `ValueError`
+for an invalid tenant or argument, and `OSError` for a failed local file
+write.
 
 Absent optional data is never an error: an event with no published
 materials has an empty `published_files`, not an exception.
@@ -127,7 +131,7 @@ default; suitable for a scheduled CI job).
 ```sh
 uv sync                  # install with dev tools
 uv run pytest            # tests (live suite excluded)
-prek run --all-files     # lint, format, type check (what CI enforces)
+uvx prek run --all-files # lint, format, type check (what CI enforces)
 
 uv run --group docs mkdocs serve   # preview the docs site locally
 ```
@@ -153,7 +157,8 @@ change at any time — this library neither reproduces nor tracks them. They
 commonly restrict automated access and cap total requests over a window;
 the default pacing bounds the instantaneous rate but not total volume.
 Read the terms for the portals you query and keep your usage within them.
-See [Acceptable use](docs/usage.md#acceptable-use) for details.
+See [Acceptable use](https://chapinb.com/libmuni/latest/usage/#acceptable-use)
+for details.
 
 ## License
 

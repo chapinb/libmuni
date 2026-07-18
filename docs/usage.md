@@ -178,9 +178,10 @@ inspects the headers can never write a 0-byte file.
 
 ## Errors
 
-Everything the library raises subclasses `CivicClerkError` — see the
+Every operational error subclasses `CivicClerkError` — see the
 [API reference](api.md#errors) for the full taxonomy and when each error
-is raised.
+is raised. Invalid arguments raise `ValueError` and local file writes raise
+`OSError`, both standard built-ins outside the hierarchy.
 
 Absent optional data is never an error: an event with no published
 materials has an empty `published_files`, not an exception. A blanket

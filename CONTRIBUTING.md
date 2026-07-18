@@ -11,10 +11,10 @@ You need Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 ```sh
 uv sync                  # install, with dev tools
 uv run pytest            # tests (the live suite is excluded by default)
-prek run --all-files     # lint, format, type check — exactly what CI enforces
+uvx prek run --all-files # lint, format, type check — exactly what CI enforces
 ```
 
-A clean `prek run --all-files` means a clean CI run, so run it before you push
+A clean `uvx prek run --all-files` means a clean CI run, so run it before you push
 and you should not be surprised.
 
 ## Reporting a bug

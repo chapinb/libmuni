@@ -162,9 +162,12 @@ source for (see "Naive wall-clock datetimes").
 
 ## Exception root now, shared core deferred until a second client
 
-`MuniError` is the root of every exception the library raises, and each
-vendor's hierarchy descends from it (`CivicClerkError(MuniError)`). No shared
-HTTP, streaming, or parsing core exists yet — each vendor client owns its own.
+`MuniError` is the root of every operational exception the library raises
+(request, parse, and download failures), and each vendor's hierarchy descends
+from it (`CivicClerkError(MuniError)`). Invalid arguments raise `ValueError`
+and local file writes raise `OSError`, standard built-ins left outside the
+hierarchy by design. No shared HTTP, streaming, or parsing core exists yet —
+each vendor client owns its own.
 
 The exception root is the one piece of shared surface that is free to add
 before the first release and a breaking change after it: callers of a
