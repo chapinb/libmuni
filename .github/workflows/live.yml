@@ -9,12 +9,17 @@ on:
     - cron: "17 6 * * 1" # Mondays, 06:17 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   live:
     name: live contract suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
       - name: Sync environment
         run: uv sync --locked
