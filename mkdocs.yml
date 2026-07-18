@@ -79,7 +79,7 @@ plugins:
         Guides:
           - usage.md: Datetimes, request pacing, listing meetings,
               downloads, and errors.
-          - cli.md: The `muni civicclerk` commands that mirror the library.
+          - cli.md: The `muni-cli civicclerk` commands that mirror the library.
         Reference:
           - api.md: Every public class and method, with signatures.
           - decisions.md: Why the library is shaped the way it is.

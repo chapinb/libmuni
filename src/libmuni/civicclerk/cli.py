@@ -34,8 +34,9 @@ def main(
         client_factory: Builds the client for a tenant — injectable so
             tests can supply mock transports.
         prog: Program name shown in usage and help text. Defaults to
-            ``civicclerk``; the ``muni`` launcher passes ``muni civicclerk``
-            so nested usage lines match how the command was invoked.
+            ``civicclerk``; the ``muni-cli`` launcher passes
+            ``muni-cli civicclerk`` so nested usage lines match how the
+            command was invoked.
 
     Returns:
         The process exit code: 0 on success, 1 for a ``CivicClerkError``,

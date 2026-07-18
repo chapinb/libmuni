@@ -1,9 +1,9 @@
-"""The ``muni`` command: a launcher over libmuni's per-platform CLIs.
+"""The ``muni-cli`` command: a launcher over libmuni's per-platform CLIs.
 
-``muni`` owns only routing. It selects a platform from its first argument and
-hands every remaining argument to that platform's own command-line interface,
-which owns its verbs, help text, and error handling. Adding a platform is one
-entry in ``_PLATFORMS``; nothing else here needs to change.
+``muni-cli`` owns only routing. It selects a platform from its first argument
+and hands every remaining argument to that platform's own command-line
+interface, which owns its verbs, help text, and error handling. Adding a
+platform is one entry in ``_PLATFORMS``; nothing else here needs to change.
 """
 
 import argparse
@@ -18,12 +18,12 @@ PlatformCLI = Callable[[list[str] | None], int]
 return a process exit code."""
 
 _PLATFORMS: dict[str, PlatformCLI] = {
-    "civicclerk": partial(civicclerk_cli.main, prog="muni civicclerk"),
+    "civicclerk": partial(civicclerk_cli.main, prog="muni-cli civicclerk"),
 }
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the ``muni`` command.
+    """Run the ``muni-cli`` command.
 
     Args:
         argv: Argument list (defaults to ``sys.argv[1:]``). The first item
@@ -46,10 +46,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="muni",
+        prog="muni-cli",
         description=(
             "Access municipal government data platforms from the command line. "
-            "Each platform has its own subcommands — run 'muni <platform> --help'."
+            "Each platform has its own subcommands — run 'muni-cli <platform> --help'."
         ),
     )
     subparsers = parser.add_subparsers(required=True, metavar="platform")

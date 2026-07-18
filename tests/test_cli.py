@@ -312,7 +312,7 @@ def test_demo_skips_gracefully_when_tenant_has_no_extras(capsys):
     assert "no published files" in out
 
 
-# --- muni dispatcher (slice 3): routes to the platform CLI ---
+# --- muni-cli dispatcher (slice 3): routes to the platform CLI ---
 
 
 def test_muni_forwards_remaining_args_to_the_platform_cli(monkeypatch):
@@ -358,6 +358,6 @@ def test_muni_civicclerk_help_shows_verbs_under_muni_prog(capsys):
 
     out = capsys.readouterr().out
     assert excinfo.value.code == 0
-    assert "muni civicclerk" in out  # usage line reflects how it was invoked
+    assert "muni-cli civicclerk" in out  # usage line reflects how it was invoked
     assert "categories" in out
     assert "events" in out

@@ -70,8 +70,8 @@ doesn't model yet are still reachable.
 
 ### Command line
 
-The package installs a `muni` command that routes to a subcommand per
-platform. `muni civicclerk demo exampletown` narrates a tour of the whole
+The package installs a `muni-cli` command that routes to a subcommand per
+platform. `muni-cli civicclerk demo exampletown` narrates a tour of the whole
 CivicClerk surface, and the other subcommands (`categories`, `events`,
 `agenda`, `text`, `download`) mirror the client methods, with `--json`
 exposing raw payloads.

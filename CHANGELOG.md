@@ -23,9 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   caller spanning platforms can catch them all with one `except`.
 - `FileStream` for name-after-headers download workflows, exposing content
   type, extension, and size before the body is read.
-- Polite-by-default request pacing (`min_request_interval`) and a `muni`
+- Polite-by-default request pacing (`min_request_interval`) and a `muni-cli`
   command-line interface that routes to per-platform subcommands
-  (`muni civicclerk ...`).
+  (`muni-cli civicclerk ...`).
 
 ### Fixed
 
