@@ -1,9 +1,13 @@
-# libcivicclerk
+# libmuni
 
-Read-only Python client for the CivicClerk public meeting-portal API
-(`https://{tenant}.api.civicclerk.com/v1`). Thin typed client: every public
-method maps to one HTTP request; models are frozen dataclasses with a `raw`
-escape hatch. See `docs/decisions.md` for architecture decisions and
+Read-only Python clients for municipal government software platforms, one
+client per platform under the `libmuni` namespace. The first is
+`libmuni.civicclerk`, a client for the CivicClerk public meeting-portal API
+(`https://{tenant}.api.civicclerk.com/v1`). Each client is thin and typed:
+every public method maps to one HTTP request; models are frozen dataclasses
+with a `raw` escape hatch. The clients share no cross-vendor data model — the
+jurisdiction unifies them, not a schema — and every error subclasses
+`libmuni.MuniError`. See `docs/decisions.md` for architecture decisions and
 `docs/specs/` for the active spec-as-plan.
 
 ## Commands

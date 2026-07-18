@@ -7,7 +7,7 @@ exact signatures.
 ## The client
 
 ```python
-from libcivicclerk import CivicClerkClient
+from libmuni.civicclerk import CivicClerkClient
 
 with CivicClerkClient("exampletown") as client:  # the portal subdomain
     ...
@@ -129,6 +129,6 @@ These do not exist. If a snippet uses one, it is wrong.
 ## For LLMs and agents
 
 The full documentation set is served as a single file:
-[`llms-full.txt`](https://chapinb.com/libcivicclerk/latest/llms-full.txt).
+[`llms-full.txt`](https://chapinb.com/libmuni/latest/llms-full.txt).
 An index in the [llms.txt](https://llmstxt.org/) format is at
-[`llms.txt`](https://chapinb.com/libcivicclerk/latest/llms.txt).
+[`llms.txt`](https://chapinb.com/libmuni/latest/llms.txt).

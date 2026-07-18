@@ -2,7 +2,7 @@
 
 ## Client
 
-::: libcivicclerk.CivicClerkClient
+::: libmuni.civicclerk.CivicClerkClient
 
 ## Models
 
@@ -10,32 +10,36 @@ All models are frozen dataclasses. Each keeps the unmodified API payload in
 its `raw` attribute, so upstream fields the library does not model yet stay
 reachable.
 
-::: libcivicclerk.Event
+::: libmuni.civicclerk.Event
 
-::: libcivicclerk.EventCategory
+::: libmuni.civicclerk.EventCategory
 
-::: libcivicclerk.EventLocation
+::: libmuni.civicclerk.EventLocation
 
-::: libcivicclerk.PublishedFile
+::: libmuni.civicclerk.PublishedFile
 
-::: libcivicclerk.Agenda
+::: libmuni.civicclerk.Agenda
 
-::: libcivicclerk.AgendaItem
+::: libmuni.civicclerk.AgendaItem
 
-::: libcivicclerk.AgendaAttachment
+::: libmuni.civicclerk.AgendaAttachment
 
 ## Errors
 
-Everything the library raises subclasses `CivicClerkError`.
+Every error any libmuni client raises subclasses `MuniError`. The CivicClerk
+client's errors subclass `CivicClerkError`, which in turn subclasses
+`MuniError`, so a caller spanning platforms can catch them all at once.
 
-::: libcivicclerk.CivicClerkError
+::: libmuni.MuniError
 
-::: libcivicclerk.UnknownTenantError
+::: libmuni.civicclerk.CivicClerkError
 
-::: libcivicclerk.NotFoundError
+::: libmuni.civicclerk.UnknownTenantError
 
-::: libcivicclerk.APIStatusError
+::: libmuni.civicclerk.NotFoundError
 
-::: libcivicclerk.NetworkError
+::: libmuni.civicclerk.APIStatusError
 
-::: libcivicclerk.PayloadError
+::: libmuni.civicclerk.NetworkError
+
+::: libmuni.civicclerk.PayloadError

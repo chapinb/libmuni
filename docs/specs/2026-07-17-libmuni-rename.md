@@ -163,7 +163,7 @@ users to break, no deprecation shim, and no redirect package.
 4. [x] **Changelog.** `check_changelog_version` passes at `0.1.0` with only an
    `[Unreleased]` section — fold the phantom `[0.1.0]` entries back, drop the
    dated heading, fix compare links. Touches `CHANGELOG.md`.
-5. **Docs and metadata.** No `libcivicclerk` outside `docs/specs/`, and the
+5. [x] **Docs and metadata.** No `libcivicclerk` outside `docs/specs/`, and the
    docs site builds — update prose, nav, URLs, and the thin-client ADR's "one
    client class" phrasing. Touches `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`,
    `docs/*.md`, `docs/decisions.md`, `mkdocs.yml`, `pyproject.toml` urls.

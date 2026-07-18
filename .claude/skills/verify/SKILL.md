@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Verify libcivicclerk end-to-end - build the wheel and drive the public API surface against a live CivicClerk tenant
+description: Verify libmuni end-to-end - build the wheel and drive the public API surface against a live CivicClerk tenant
 ---
 
-# Verifying libcivicclerk
+# Verifying libmuni
 
 The surface is the package boundary: import the **installed wheel**, not
 `src/`. The library is read-only against a public API, so live verification
@@ -14,7 +14,7 @@ is safe and cheap (keep it polite — one pass, ~15 requests).
 ```sh
 uv build
 uv run --no-project --isolated \
-  --with dist/libcivicclerk-<version>-py3-none-any.whl \
+  --with dist/libmuni-<version>-py3-none-any.whl \
   python <script>
 ```
 

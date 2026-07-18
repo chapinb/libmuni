@@ -26,10 +26,10 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/chapinb/libcivicclerk"
-Documentation = "https://chapinb.com/libcivicclerk/"
-Issues = "https://github.com/chapinb/libcivicclerk/issues"
-Changelog = "https://github.com/chapinb/libcivicclerk/blob/main/CHANGELOG.md"
+Repository = "https://github.com/chapinb/libmuni"
+Documentation = "https://chapinb.com/libmuni/"
+Issues = "https://github.com/chapinb/libmuni/issues"
+Changelog = "https://github.com/chapinb/libmuni/blob/main/CHANGELOG.md"
 
 [project.scripts]
 muni = "libmuni.cli:main"

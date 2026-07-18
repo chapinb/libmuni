@@ -1,19 +1,22 @@
-# libcivicclerk
+# libmuni
 
-An unofficial read-only Python client for the CivicClerk public meeting-portal API.
+Unofficial read-only Python clients for municipal government software
+platforms. A municipality's public record is spread across several vendor
+platforms, and libmuni provides one small, typed, well-behaved client per
+platform. The clients share no cross-vendor data model — what unifies them is
+the jurisdiction rather than a schema.
 
-CivicClerk is a meeting-portal platform used by many municipalities to
-publish meeting calendars, agendas, minutes, and supporting documents. Those
-portals are backed by a public, unauthenticated API at
-`https://{tenant}.api.civicclerk.com/v1`. This library gives developers a
-small, typed, well-behaved client for reading that data — meeting calendars,
-attendance details, structured agendas, and document downloads — without
-reverse-engineering the API themselves.
+The first platform is **CivicClerk** (`libmuni.civicclerk`), a meeting-portal
+system used by many municipalities to publish meeting calendars, agendas,
+minutes, and supporting documents. Those portals are backed by a public,
+unauthenticated API at `https://{tenant}.api.civicclerk.com/v1`; the client
+reads that data — meeting calendars, attendance details, structured agendas,
+and document downloads — without reverse-engineering the API yourself.
 
 ## Install
 
 ```sh
-pip install libcivicclerk
+pip install libmuni
 ```
 
 Requires Python 3.11+. The only runtime dependency is
@@ -28,7 +31,7 @@ the `exampletown` in `exampletown.portal.civicclerk.com`.
 import datetime as dt
 from pathlib import Path
 
-from libcivicclerk import CivicClerkClient
+from libmuni.civicclerk import CivicClerkClient
 
 with CivicClerkClient("exampletown") as client:
     # Boards and committees
@@ -67,10 +70,11 @@ doesn't model yet are still reachable.
 
 ### Command line
 
-The package installs a `civicclerk` command that demonstrates the library
-against any tenant — `civicclerk demo exampletown` narrates a tour of the
-whole surface, and subcommands (`categories`, `events`, `agenda`, `text`,
-`download`) mirror the client methods, with `--json` exposing raw payloads.
+The package installs a `muni` command that routes to a subcommand per
+platform. `muni civicclerk demo exampletown` narrates a tour of the whole
+CivicClerk surface, and the other subcommands (`categories`, `events`,
+`agenda`, `text`, `download`) mirror the client methods, with `--json`
+exposing raw payloads.
 
 ### Datetimes are local wall-clock time
 
@@ -95,16 +99,16 @@ materials has an empty `published_files`, not an exception.
 
 ## Documentation
 
-The [cheat sheet](https://chapinb.com/libcivicclerk/latest/cheatsheet/)
+The [cheat sheet](https://chapinb.com/libmuni/latest/cheatsheet/)
 is the fastest way into the
-[full documentation](https://chapinb.com/libcivicclerk/latest/) — the
+[full documentation](https://chapinb.com/libmuni/latest/) — the
 whole public surface, the traps, and what the library deliberately does not
 do.
 
 Using an LLM or coding agent? Hand it
-[llms-full.txt](https://chapinb.com/libcivicclerk/latest/llms-full.txt),
+[llms-full.txt](https://chapinb.com/libmuni/latest/llms-full.txt),
 which is the entire documentation set — signatures included — as a single
-file. An [llms.txt](https://chapinb.com/libcivicclerk/latest/llms.txt)
+file. An [llms.txt](https://chapinb.com/libmuni/latest/llms.txt)
 index is served alongside it in the [llms.txt](https://llmstxt.org/) format.
 
 ## Versioning
@@ -129,7 +133,7 @@ uv run --group docs mkdocs serve   # preview the docs site locally
 ```
 
 Documentation lives at
-[chapinb.com/libcivicclerk](https://chapinb.com/libcivicclerk/).
+[chapinb.com/libmuni](https://chapinb.com/libmuni/).
 Pushing a `v*` tag deploys that version's docs with a version selector
 (GitHub Pages must be set to serve the `gh-pages` branch once).
 

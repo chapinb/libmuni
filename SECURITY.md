@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-libcivicclerk is pre-1.0. Only the latest release on PyPI receives security
+libmuni is pre-1.0. Only the latest release on PyPI receives security
 fixes; older versions do not.
 
 ## Reporting a vulnerability
@@ -18,7 +18,7 @@ assessment of whether the report is in scope (below) with next steps.
 
 ## Threat model and scope
 
-libcivicclerk is a read-only, unauthenticated client for a third-party API. It
+libmuni is a read-only, unauthenticated client for a third-party API. It
 issues no writes and stores no credentials of its own. Two behaviors are by
 design and are documented on `CivicClerkClient`; treat them as the caller's
 responsibility, not library bugs:

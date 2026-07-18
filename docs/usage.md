@@ -42,7 +42,7 @@ inject it:
 
 ```python
 import httpx
-from libcivicclerk import CivicClerkClient
+from libmuni.civicclerk import CivicClerkClient
 
 http = httpx.Client(
     timeout=30.0,

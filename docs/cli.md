@@ -1,9 +1,10 @@
 # Command line
 
-Installing the package also installs `civicclerk`, a small command that
-demonstrates the library against any tenant — every subcommand mirrors one
-client method, so the CLI doubles as living documentation. The tenant is
-the portal subdomain: the `exampletown` in
+Installing the package also installs `muni`, a small command that routes to
+one subcommand per platform. The CivicClerk subcommands live under
+`muni civicclerk` and demonstrate the library against any tenant — each one
+mirrors a client method, so the CLI doubles as living documentation. The
+tenant is the portal subdomain: the `exampletown` in
 `exampletown.portal.civicclerk.com`.
 
 ## The guided tour
@@ -11,7 +12,7 @@ the portal subdomain: the `exampletown` in
 The quickest way to see what the library does:
 
 ```sh
-civicclerk demo exampletown
+muni civicclerk demo exampletown
 ```
 
 It walks the whole surface — boards, recent meetings, an agenda tree, a
@@ -21,12 +22,12 @@ each step.
 ## Subcommands
 
 ```sh
-civicclerk categories exampletown            # boards and committees
-civicclerk events exampletown --limit 5      # meetings, oldest first
-civicclerk events exampletown --category 12 --from 2026-07-01 --to 2026-08-01
-civicclerk agenda exampletown 7301           # a meeting's agenda tree
-civicclerk text exampletown 9001             # best-effort text extraction
-civicclerk download exampletown 9001 packet.pdf
+muni civicclerk categories exampletown            # boards and committees
+muni civicclerk events exampletown --limit 5      # meetings, oldest first
+muni civicclerk events exampletown --category 12 --from 2026-07-01 --to 2026-08-01
+muni civicclerk agenda exampletown 7301           # a meeting's agenda tree
+muni civicclerk text exampletown 9001             # best-effort text extraction
+muni civicclerk download exampletown 9001 packet.pdf
 ```
 
 `events` prints at most 15 meetings (one API page) unless you raise
@@ -40,7 +41,7 @@ unmodified API payloads instead of formatted text — the same data every
 model carries in its `raw` attribute:
 
 ```sh
-civicclerk events exampletown --limit 3 --json | jq '.[0].eventName'
+muni civicclerk events exampletown --limit 3 --json | jq '.[0].eventName'
 ```
 
 ## Exit codes

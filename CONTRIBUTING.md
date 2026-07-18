@@ -20,7 +20,7 @@ and you should not be surprised.
 ## Reporting a bug
 
 Open an issue at
-[github.com/chapinb/libcivicclerk/issues](https://github.com/chapinb/libcivicclerk/issues).
+[github.com/chapinb/libmuni/issues](https://github.com/chapinb/libmuni/issues).
 
 If parsing broke, the single most useful thing you can include is **the payload
 that broke it** — every model keeps the raw response reachable via `.raw`, so
