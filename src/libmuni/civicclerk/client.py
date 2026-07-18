@@ -118,7 +118,7 @@ class CivicClerkClient:
         http_client: httpx.Client | None = None,
         min_request_interval: float = 1.0,
     ) -> None:
-        if not _TENANT_PATTERN.match(tenant):
+        if not _TENANT_PATTERN.fullmatch(tenant):
             raise ValueError(
                 f"invalid tenant {tenant!r}: expected a single subdomain label "
                 "(letters, digits, and interior hyphens, up to 63 characters), "
@@ -201,6 +201,11 @@ class CivicClerkClient:
             next_link = payload.get("@odata.nextLink")
             if not next_link:
                 return
+            if not isinstance(next_link, str):
+                raise PayloadError(
+                    "Events response @odata.nextLink must be a string, "
+                    f"got {type(next_link).__name__}"
+                )
             # Page 1 already proved the tenant exists, so a 404 on a
             # continuation link is a generic API error, not an unknown tenant.
             payload = self._get_json_url(next_link, not_found_error=APIStatusError)

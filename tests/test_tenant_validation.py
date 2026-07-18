@@ -40,6 +40,8 @@ def test_valid_subdomain_labels_are_accepted(tenant: str):
         "example-",
         "exam ple",
         "a" * 64,
+        "exampletown\n",
+        "exampletown\r\n",
     ],
 )
 def test_hostile_or_malformed_tenants_are_rejected(tenant: str):

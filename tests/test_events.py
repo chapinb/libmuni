@@ -6,7 +6,7 @@ import httpx
 import pytest
 from conftest import load_fixture, mock_client, recording_client
 
-from libmuni.civicclerk import APIStatusError, Event, UnknownTenantError
+from libmuni.civicclerk import APIStatusError, Event, PayloadError, UnknownTenantError
 
 # --- acceptance: the calendar story ---
 
@@ -171,6 +171,16 @@ def test_iter_events_reports_continuation_404_as_generic_api_error():
     with pytest.raises(APIStatusError) as exc_info:
         list(client.iter_events())
     assert not isinstance(exc_info.value, UnknownTenantError)
+
+
+def test_iter_events_rejects_non_string_next_link():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"value": [event_stub(1)], "@odata.nextLink": 42})
+
+    client = mock_client(handler)
+
+    with pytest.raises(PayloadError, match="must be a string"):
+        list(client.iter_events())
 
 
 def test_iter_events_is_lazy_across_pages():
