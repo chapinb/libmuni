@@ -28,6 +28,18 @@ def payload_factory(payload: dict):
     return factory_for(handler)
 
 
+def test_invalid_tenant_exits_cleanly_without_traceback(capsys):
+    # The real client constructor rejects the dotted host with ValueError
+    # before any request; the CLI must report it, not crash.
+    exit_code = main(["categories", "evil.com"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert captured.err.startswith("error: ")
+    assert "invalid tenant" in captured.err
+    assert "Traceback" not in captured.err
+
+
 # --- categories (slice 1 tracer) ---
 
 

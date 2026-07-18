@@ -38,10 +38,11 @@ def main(
             so nested usage lines match how the command was invoked.
 
     Returns:
-        The process exit code: 0 on success, 1 for a ``CivicClerkError``
-        or an ``OSError`` writing output (one line on stderr, no
-        traceback), 130 on Ctrl-C. Argparse exits the process with 2 on
-        usage errors before this returns.
+        The process exit code: 0 on success, 1 for a ``CivicClerkError``,
+        a ``ValueError`` (invalid tenant or argument), or an ``OSError``
+        writing output (one line on stderr, no traceback), 130 on Ctrl-C.
+        Argparse exits the process with 2 on usage errors before this
+        returns.
     """
     args = _build_parser(prog).parse_args(argv)
     try:
@@ -50,7 +51,9 @@ def main(
     except BrokenPipeError:
         # The reader closed the pipe (e.g. `| head`) — expected, not noisy.
         return 1
-    except (CivicClerkError, OSError) as exc:
+    except (CivicClerkError, ValueError, OSError) as exc:
+        # ValueError covers an invalid tenant or argument rejected by the
+        # client constructor or a method (e.g. an attachment with no URL).
         print(f"error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
