@@ -534,21 +534,23 @@ def test_attachment_response_errors_redact_signed_url_credentials(handler, error
 
 
 def test_attachment_network_errors_redact_signed_url_credentials():
+    signed_url = "https://blob.example/files/report.pdf?sv=1&sig=TOPSECRET#private"
+
     def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("connection refused")
+        # A transport error whose own text restates the signed URL — the
+        # message must not carry it through.
+        raise httpx.ConnectError(f"failed connecting to {signed_url}")
 
     client = mock_client(handler)
-    attachment = AgendaAttachment(
-        attachment_id=5,
-        download_url="https://blob.example/files/report.pdf?sv=1&sig=TOPSECRET#private",
-    )
+    attachment = AgendaAttachment(attachment_id=5, download_url=signed_url)
 
     with pytest.raises(NetworkError) as excinfo, client.open_attachment(attachment):
         pass  # pragma: no cover — entering the stream must raise
 
-    assert str(excinfo.value) == (
-        "request to https://blob.example/files/report.pdf failed: connection refused"
-    )
+    message = str(excinfo.value)
+    assert message == ("request to https://blob.example/files/report.pdf failed (ConnectError)")
+    assert "TOPSECRET" not in message
+    assert "sig=" not in message
 
 
 # --- download_attachment: agenda attachments via their signed download_url ---

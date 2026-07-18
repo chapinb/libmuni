@@ -46,3 +46,9 @@ Exception messages and `APIStatusError.url` omit URL userinfo, query strings,
 and fragments so signed attachment credentials and continuation tokens are safe
 from routine exception logging. Full signed URLs remain intentionally available
 on the source models for callers that need to make the request.
+
+The guarantee covers the message text (what `str(exc)` and routine logging
+capture). A `NetworkError` keeps the originating `httpx` exception as its
+`__cause__`, and that chained exception's own text may restate the full URL; it
+surfaces only in a full traceback, not in the redacted message. Suppress chained
+causes where you log full tracebacks from untrusted tenants.

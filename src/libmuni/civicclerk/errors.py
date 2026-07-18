@@ -1,10 +1,14 @@
 """Typed errors raised by the CivicClerk client.
 
-Every error this client raises subclasses ``CivicClerkError``, so
-``except CivicClerkError`` catches anything that can go wrong in a call.
-``CivicClerkError`` in turn subclasses ``libmuni.MuniError``, so a caller
-spanning several platforms can catch every vendor's failures at once.
-Underlying ``httpx`` exceptions are attached as ``__cause__``.
+Every operational error this client raises — request, parse, and download
+failures — subclasses ``CivicClerkError``, so ``except CivicClerkError``
+catches them all. ``CivicClerkError`` in turn subclasses ``libmuni.MuniError``,
+so a caller spanning several platforms can catch every vendor's failures at
+once. Underlying ``httpx`` exceptions are attached as ``__cause__``.
+
+Outside this hierarchy, by design: ``ValueError`` for an invalid tenant or
+argument, and ``OSError`` for a failed local file write — both standard Python
+built-ins the caller handles as usual.
 
 Absent optional data is never an error: an event without materials yields
 empty lists and ``None`` fields, not an exception.
@@ -49,8 +53,14 @@ def _network_error(url: str, exc: Exception) -> NetworkError:
     The single place the library phrases a network failure — a request can
     die before the response arrives or partway through its body, and both
     must read the same way to a caller.
+
+    The message carries only the failure's class, never the raw transport
+    exception text, which for some ``httpx`` errors restates the full request
+    URL (query string and all) and would defeat the redaction ``_safe_url``
+    performs. The original exception remains the ``__cause__`` for callers who
+    opt into a full traceback.
     """
-    return NetworkError(f"request to {_safe_url(url)} failed: {exc}")
+    return NetworkError(f"request to {_safe_url(url)} failed ({type(exc).__name__})")
 
 
 class APIStatusError(CivicClerkError):
