@@ -1,0 +1,1350 @@
+# libmuni
+
+> Unofficial read-only Python client for the CivicClerk public meeting-portal API
+
+Unofficial read-only Python client for the CivicClerk public meeting-portal API. A thin typed client: every public method maps to one HTTP request, and models are frozen dataclasses with a `raw` escape hatch. No authentication, no write operations, no async client.
+
+
+# Getting started
+
+# libmuni
+
+Unofficial read-only Python clients for municipal government software platforms. A municipality's public record is spread across several vendor platforms, and libmuni provides one small, typed, well-behaved client per platform. The clients share no cross-vendor data model — what unifies them is the jurisdiction rather than a schema.
+
+The first platform is **CivicClerk** (`libmuni.civicclerk`), a meeting-portal system used by many municipalities to publish meeting calendars, agendas, minutes, and supporting documents. Those portals are backed by a public, unauthenticated API at `https://{tenant}.api.civicclerk.com/v1`; the client reads that data — meeting calendars, attendance details, structured agendas, and document downloads — without reverse-engineering the API yourself.
+
+## Install
+
+```
+pip install libmuni
+```
+
+Requires Python 3.11+. The only runtime dependency is [httpx](https://www.python-httpx.org/).
+
+## Quickstart
+
+The tenant name is the subdomain of a municipality's CivicClerk portal — the `exampletown` in `exampletown.portal.civicclerk.com`.
+
+```
+import datetime as dt
+from pathlib import Path
+
+from libmuni.civicclerk import CivicClerkClient
+
+with CivicClerkClient("exampletown") as client:
+    # Boards and committees
+    for category in client.get_event_categories():
+        print(category.id, category.name)
+
+    # This month's meetings for one board
+    events = list(
+        client.iter_events(
+            category_id=12,
+            from_date=dt.date.today(),
+            to_date=dt.date.today() + dt.timedelta(days=31),
+        )
+    )
+    for event in events:
+        print(event.starts_at, event.name)
+        print("  attend:", event.location, event.virtual_meeting_url)
+        print("  recording:", event.recording_url)
+
+    # The structured agenda of the next meeting that has one
+    event = next(e for e in events if e.agenda_id)
+    agenda = client.get_agenda(event.agenda_id)
+    for item in agenda.walk_items():
+        print(("  " if item.is_section else "    ") + (item.name or ""))
+        for attachment in item.attachments:
+            client.download_attachment(attachment, Path(attachment.file_name or "file.pdf"))
+
+    # Meeting-level documents (agenda PDF, packet, minutes)
+    for file in event.published_files:
+        client.download_file(file.file_id, Path(f"{file.file_id}.pdf"))
+        text = client.get_file_text(file.file_id)  # best-effort, may be None
+```
+
+Every model keeps the raw API object in `.raw`, so fields the library doesn't model yet are still reachable.
+
+### Command line
+
+The package installs a `muni-cli` command that routes to a subcommand per platform. `muni-cli civicclerk demo exampletown` narrates a tour of the whole CivicClerk surface, and the other subcommands (`categories`, `events`, `agenda`, `text`, `download`) mirror the client methods, with `--json` exposing raw payloads.
+
+### Datetimes are local wall-clock time
+
+The API stamps a `Z` (UTC) suffix on datetimes that are actually local wall-clock times, and nothing in the payload declares the tenant's timezone. The library therefore returns **naive** datetimes carrying the local reading (a 7 pm meeting is `19:00`, whatever the timezone). If you need aware datetimes, attach the municipality's timezone yourself.
+
+### Errors
+
+Every operational error subclasses `CivicClerkError`:
+
+- `UnknownTenantError` — the tenant subdomain doesn't exist (typo?)
+- `NotFoundError` — an id-parameterized lookup (agenda, file) has no data
+- `APIStatusError` — any other HTTP error status
+- `NetworkError` — DNS/connection/timeout failures
+- `PayloadError` — a response body the library can't use
+
+Two Python built-ins stay outside that hierarchy by design: `ValueError` for an invalid tenant or argument, and `OSError` for a failed local file write.
+
+Absent optional data is never an error: an event with no published materials has an empty `published_files`, not an exception.
+
+## Documentation
+
+The [cheat sheet](https://chapinb.com/libmuni/latest/cheatsheet/) is the fastest way into the [full documentation](https://chapinb.com/libmuni/latest/) — the whole public surface, the traps, and what the library deliberately does not do.
+
+Using an LLM or coding agent? Hand it [llms-full.txt](https://chapinb.com/libmuni/latest/llms-full.txt), which is the entire documentation set — signatures included — as a single file. An [llms.txt](https://chapinb.com/libmuni/latest/llms.txt) index is served alongside it in the [llms.txt](https://llmstxt.org/) format.
+
+## Versioning
+
+Semantic versioning covers **this library's surface only**. The upstream CivicClerk API is undocumented and makes no compatibility promises; every model keeps the raw response payload reachable so upstream additions are usable immediately, and upstream drift is addressed in library releases.
+
+Drift is detected by an opt-in live contract suite: set `CIVICCLERK_TEST_TENANT=<tenant>` and run `pytest -m live` (deselected by default; suitable for a scheduled CI job).
+
+## Development
+
+```
+uv sync                  # install with dev tools
+uv run pytest            # tests (live suite excluded)
+uvx prek run --all-files # lint, format, type check (what CI enforces)
+
+uv run --group docs mkdocs serve   # preview the docs site locally
+```
+
+Documentation lives at [chapinb.com/libmuni](https://chapinb.com/libmuni/). Pushing a `v*` tag deploys that version's docs with a version selector (GitHub Pages must be set to serve the `gh-pages` branch once).
+
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or supported by CivicPlus or the CivicClerk product. "CivicClerk" is used only to describe the API this library talks to. The library reads publicly available government records from small municipal servers, and paces its requests politely by default (at most ~1 request/second; see `min_request_interval` to tune or disable). Any redistribution of downloaded documents is the responsibility of downstream applications.
+
+**Acceptable use.** The portals are governed by the platform vendor's and each jurisdiction's terms of use, which bind anyone accessing them and can change at any time — this library neither reproduces nor tracks them. They commonly restrict automated access and cap total requests over a window; the default pacing bounds the instantaneous rate but not total volume. Read the terms for the portals you query and keep your usage within them. See [Acceptable use](https://chapinb.com/libmuni/latest/usage/#acceptable-use) for details.
+
+## License
+
+MIT
+
+# Cheat sheet
+
+The whole library on one page: what exists, what will bite you, and what does not exist at all. The [API reference](https://chapinb.com/libmuni/dev/api/index.md) remains the authority on exact signatures.
+
+## The client
+
+```
+from libmuni.civicclerk import CivicClerkClient
+
+with CivicClerkClient("exampletown") as client:  # the portal subdomain
+    ...
+```
+
+`CivicClerkClient(tenant, *, http_client=None, min_request_interval=1.0)`. Use it as a context manager, or call `close()` yourself. Each fetching method below costs exactly one HTTP request — except `iter_events`, which spends one per page it is asked for, and `close()`, which talks to nobody.
+
+| Method                                                           | Purpose                                                                             |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `get_event_categories()`                                         | The tenant's boards and committees.                                                 |
+| `iter_events(*, category_id=None, from_date=None, to_date=None)` | Meetings, oldest first, fetched lazily one page at a time.                          |
+| `get_agenda(agenda_id)`                                          | One meeting's agenda tree.                                                          |
+| `download_file(file_id, destination)`                            | Save a meeting-level document to a path you already know.                           |
+| `download_attachment(attachment, destination)`                   | Save an agenda-item document. Takes the `AgendaAttachment`, not an id.              |
+| `open_file(file_id)`                                             | Context manager yielding a `FileStream` — read the type before naming the file.     |
+| `open_attachment(attachment)`                                    | The same, for an attachment's signed URL. `ValueError` if it has no `download_url`. |
+| `get_file_text(file_id)`                                         | Upstream's best-effort text extraction, or `None`.                                  |
+| `close()`                                                        | Release the HTTP connection pool. No request.                                       |
+
+The package also exports `__version__`, the installed library version.
+
+## The stream
+
+`FileStream` is what `open_file` and `open_attachment` yield, and the one mutable, lifetime-bound object here: it wraps a live response and is valid only inside its `with` block. Use it when the filename depends on the file's type — the models' names (`PublishedFile.name`, `AgendaAttachment.file_name`) carry no extension, and the response is the only place the extension lives.
+
+| Member              | Meaning                                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content_type`      | Media type, parameters stripped, e.g. `application/pdf`. `None` if unsent.                                                                                                 |
+| `suffix`            | Extension with the leading dot, from `Content-Disposition`, else the content type, else the URL path. `None` when there is no basis — never a guessed `.pdf`.              |
+| `size`              | Size in bytes of the body you will receive; `None` when the server declares none (chunked, or a compressed body whose `Content-Length` describes the wire, not the bytes). |
+| `iter_bytes()`      | The body in chunks. Single pass, no disk.                                                                                                                                  |
+| `save(destination)` | Writes **exactly** `destination` and returns it — nothing appended or renamed.                                                                                             |
+
+Opening a stream for an unavailable file raises `NotFoundError` from the `with` statement itself, not partway through the body.
+
+## The models
+
+All are frozen dataclasses. Every one carries the unmodified API payload in `.raw`, so a field the library does not model yet is still reachable.
+
+Parsing is two-tier: the **load-bearing** field below is required, and a payload missing it raises `PayloadError`. Everything else is best-effort and arrives as `None` or an empty list rather than failing.
+
+| Model              | Load-bearing      | Other fields                                                                                                                                                                                |
+| ------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EventCategory`    | `id`              | `name`, `sort_order`, `is_public`, `parent_id`                                                                                                                                              |
+| `Event`            | `id`, `starts_at` | `name`, `description`, `category_id`, `category_name`, `agenda_id`, `agenda_name`, `duration`, `location`, `virtual_meeting_url`, `youtube_video_id`, `media_stream_url`, `published_files` |
+| `EventLocation`    | —                 | `address1`, `address2`, `city`, `state`, `zip_code`                                                                                                                                         |
+| `PublishedFile`    | `file_id`         | `file_type`, `name`, `published_at`                                                                                                                                                         |
+| `Agenda`           | `agenda_id`       | `items`                                                                                                                                                                                     |
+| `AgendaItem`       | `item_id`         | `name`, `is_section`, `sort_order`, `attachments`, `children`                                                                                                                               |
+| `AgendaAttachment` | `attachment_id`   | `file_name`, `is_link`, `download_url`                                                                                                                                                      |
+
+`AgendaItem.children` nests: an agenda is a tree, not a flat list.
+
+## The errors
+
+Every operational error subclasses `CivicClerkError`, so one `except` clause catches them whole. (Invalid arguments raise `ValueError` and local file writes raise `OSError` — standard built-ins, outside the hierarchy.)
+
+| Error                | Raised when                                       |
+| -------------------- | ------------------------------------------------- |
+| `UnknownTenantError` | The tenant subdomain does not exist.              |
+| `NotFoundError`      | The API reports the id as missing.                |
+| `APIStatusError`     | The API answered with an error status.            |
+| `NetworkError`       | The request failed at the network level.          |
+| `PayloadError`       | A response body was missing a load-bearing field. |
+
+Absent optional data is never an error. A meeting with no documents has an empty `published_files`, not an exception.
+
+## Two traps
+
+**Datetimes are naive local wall-clock time, not UTC.** The API stamps a `Z` suffix on times that are really local: a 7 pm meeting arrives as `19:00:00Z`, and nothing upstream declares the municipality's timezone. So `event.starts_at` is a naive datetime carrying the local reading. Do not call `.astimezone()` on it and do not treat it as UTC — attach the municipality's timezone yourself with `replace(tzinfo=...)` if you need an aware value. Date filters on `iter_events` run on that same local timeline.
+
+**The two id namespaces are not interchangeable.** `PublishedFile.file_id` goes to `download_file`; an `AgendaAttachment` goes to `download_attachment`. The numbers overlap, so passing an attachment id to `download_file` usually raises `NotFoundError` — but when that number also exists as a file id, it silently downloads **the wrong document**. Always route through the matching method.
+
+## What this library does not have
+
+These do not exist. If a snippet uses one, it is wrong.
+
+- **No async client.** There is no `AsyncCivicClerkClient` and no `await`-able method. The client is synchronous, built on `httpx.Client`.
+- **No writes.** No create, update, delete, subscribe, or comment. The upstream API surface used here is read-only.
+- **No authentication.** No API key, token, or credential parameter — the portal data is public.
+- **No search.** There is no full-text or keyword query method. Filtering is the three `iter_events` arguments and nothing more.
+- **No retries, caching, or backoff.** Only `min_request_interval` pacing. Retries and caching are caller policy — inject a configured `httpx.Client` (built with `follow_redirects=True`; the client's own default does).
+- **No timezone data.** The API does not publish one; see the first trap.
+- **No resumable downloads.** Upstream ignores `Range` and rejects `HEAD`, so a failed download restarts from zero.
+- **No pydantic.** Models are plain frozen dataclasses; `httpx` is the only runtime dependency.
+
+## For LLMs and agents
+
+The full documentation set is served as a single file: [`llms-full.txt`](https://chapinb.com/libmuni/latest/llms-full.txt). An index in the [llms.txt](https://llmstxt.org/) format is at [`llms.txt`](https://chapinb.com/libmuni/latest/llms.txt).
+# Guides
+
+# Usage guide
+
+Everything here assumes the [quickstart](https://chapinb.com/libmuni/dev/index.md) basics: one `CivicClerkClient` per tenant, used as a context manager.
+
+## Datetimes are local wall-clock time
+
+The API stamps a `Z` (UTC) suffix on datetimes that are actually local wall-clock times — a 7 pm meeting arrives as `19:00:00Z` whatever the municipality's timezone — and nothing in the API declares the tenant's timezone (verified against the OData schema and live tenants across five US states). The library therefore returns **naive** datetimes carrying the local reading.
+
+If you need aware datetimes, attach the municipality's timezone yourself:
+
+```
+from zoneinfo import ZoneInfo
+
+local_tz = ZoneInfo("America/New_York")  # you know your municipality
+aware = event.starts_at.replace(tzinfo=local_tz)
+```
+
+Date filters on `iter_events` are interpreted on the same local wall-clock timeline, so "meetings this week" means the municipality's week — no conversion needed.
+
+## Request pacing, retries, and caching
+
+The client is polite by default: consecutive requests (including pagination pages and downloads) are spaced at least `min_request_interval` seconds apart — 1 s out of the box, i.e. at most ~1 request/second against what are typically small municipal servers, a rate a human browsing the portal could produce. Pacing bounds the instantaneous rate only, not total volume — see [Acceptable use](#acceptable-use) below.
+
+```
+client = CivicClerkClient("exampletown", min_request_interval=0)  # you own the rate
+```
+
+Retries and caching are deliberately **not** built in — they are policy that varies per application. Configure them on an `httpx.Client` and inject it:
+
+```
+import httpx
+from libmuni.civicclerk import CivicClerkClient
+
+http = httpx.Client(
+    timeout=30.0,
+    transport=httpx.HTTPTransport(retries=3),  # connect-level retries
+    follow_redirects=True,  # file streams may redirect to storage
+)
+client = CivicClerkClient("exampletown", http_client=http)
+```
+
+The client the library creates for you follows redirects already; an injected client keeps httpx's default of *not* following them, so set `follow_redirects=True` unless you have a reason not to.
+
+Treat every API-provided request target as untrusted: attachment downloads use the response's signed URL, event pagination follows its absolute continuation URL, and enabled redirects apply to all requests. A malicious tenant can direct those requests to internal services, carrying custom headers from an injected client. Do not attach credentials to that client, and isolate its network when using tenants you do not trust. See the packaged security policy for the full threat model.
+
+For response-level retries with backoff and a development cache, consider wrapping your client with [careful](https://pypi.org/project/careful/) — a library built for exactly this kind of polite scraping — and injecting the result.
+
+## Acceptable use
+
+The portals this library reads are operated under the platform vendor's and the individual jurisdiction's terms of use, which bind anyone accessing them — no account required. Those terms commonly restrict automated access and cap total requests over a window (for example, a daily page-request ceiling with penalties above it), and they can change at any time. This library does not reproduce or track them: read the terms for the portals you query and keep your usage within them.
+
+The default pacing keeps the instantaneous rate to roughly what a human browsing the portal would produce, but it does **not** bound total volume — a single unfiltered listing can fan out to hundreds of paged requests, and repeated runs add up. Staying under any per-day or per-window limit is the caller's responsibility: filter listings, cache results, and space out repeated runs.
+
+## Listing meetings
+
+`iter_events` is lazy: the API serves pages of 15 and the client fetches each page only when iteration reaches it. Collect with `list(...)` when you want everything.
+
+With **no filters it walks the tenant's entire meeting history** — potentially thousands of events and hundreds of paged requests — so pass a date range for anything interactive:
+
+```
+import datetime as dt
+
+recent = list(
+    client.iter_events(
+        from_date=dt.date.today() - dt.timedelta(days=30),
+        to_date=dt.date.today(),
+    )
+)
+```
+
+## Downloads
+
+Two id namespaces exist, and they must not be mixed:
+
+- `PublishedFile.file_id` (meeting-level documents) → `download_file`
+- `AgendaAttachment` (agenda-item documents) → `download_attachment`
+
+The namespaces overlap, so an attachment id passed to `download_file` usually raises `NotFoundError` — but when the number happens to exist as a file id too, it silently downloads the wrong document. Always go through the matching method.
+
+Practical limits inherited from the API:
+
+- **No resume.** `Range` headers are ignored and `HEAD` is rejected, so a failed download restarts from zero. The library never leaves a partial file at the destination, and an existing destination remains unchanged.
+- **Empty 200 means unavailable.** The API answers unknown or unpublished files with an empty body and status 200; the library normalizes that to `NotFoundError`.
+- **Attachment URLs expire.** `AgendaAttachment.download_url` is a signed, time-limited URL; an expired one surfaces as `APIStatusError`.
+- `get_file_text` is best-effort upstream text extraction: `None` means the API returned no text, not that the document has none.
+
+## Naming a file you have not downloaded yet
+
+`download_file` and `download_attachment` need a destination path before the request goes out — but the only authoritative source for a file's type is the response, and `HEAD` is rejected, so there is no way to ask ahead of time. Hardcoding `.pdf` is right until the day a tenant publishes something else.
+
+`open_file` and `open_attachment` hand you the response at the one moment the information is actionable: after the headers arrive, before the body is read. Both yield a `FileStream`, valid only inside the `with` block.
+
+```
+for file in event.published_files:
+    with client.open_file(file.file_id) as stream:
+        # stream.content_type -> "application/pdf" (or None)
+        # stream.size         -> bytes you will receive, or None if undeclared
+        stream.save(downloads / f"{file.name}{stream.suffix or ''}")
+```
+
+The name is yours and the extension is the response's, and they meet inside the block: `PublishedFile.name` and `AgendaAttachment.file_name` carry no extension, and `stream.suffix` is derived from the response — the `Content-Disposition` filename, else the content type, else the URL path. It is `None` when the response gives no basis for one, rather than guessing.
+
+`save(destination)` writes **exactly** the path you hand it: an extensionless destination stays extensionless, and nothing is renamed or appended. It never leaves a partial file behind.
+
+To skip the disk entirely — streaming into a parser or an object store — consume the bytes directly:
+
+```
+with client.open_attachment(attachment) as stream:
+    body = b"".join(stream.iter_bytes())  # or feed the chunks somewhere
+```
+
+The stream is single-pass and closes on exit; `iter_bytes` and `save` are invalid afterward. An unavailable file (the empty-200 trap above) raises `NotFoundError` from the `with` statement itself, so a caller that only inspects the headers can never write a 0-byte file.
+
+## Errors
+
+Every operational error subclasses `CivicClerkError` — see the [API reference](https://chapinb.com/libmuni/dev/api/#errors) for the full taxonomy and when each error is raised. Invalid arguments raise `ValueError` and local file writes raise `OSError`, both standard built-ins outside the hierarchy.
+
+Absent optional data is never an error: an event with no published materials has an empty `published_files`, not an exception. A blanket `except CivicClerkError` catches everything the client can raise.
+
+The library deliberately emits no logs of its own. Typed exceptions provide safe library-level diagnostics, with credentials removed from their URLs; configure logging or event hooks on your injected `httpx.Client` when you need request timing, retry, or wire-level observability. Ensure that application or HTTP-client logging also redacts signed URLs, because models retain their full download URLs for making requests.
+
+## Reaching unmodeled fields
+
+Every model keeps its unmodified API payload in `.raw`. When the upstream API grows a field the library doesn't model yet, it is already reachable:
+
+```
+event.raw["secondaryIanaTimeZone"]  # anything the API sent
+```
+
+# Command line
+
+Installing the package also installs `muni-cli`, a small command that routes to one subcommand per platform. The CivicClerk subcommands live under `muni-cli civicclerk` and demonstrate the library against any tenant — each one mirrors a client method, so the CLI doubles as living documentation. The tenant is the portal subdomain: the `exampletown` in `exampletown.portal.civicclerk.com`.
+
+## The guided tour
+
+The quickest way to see what the library does:
+
+```
+muni-cli civicclerk demo exampletown
+```
+
+It walks the whole surface — boards, recent meetings, an agenda tree, a document's extracted text — printing the equivalent Python call before each step.
+
+## Subcommands
+
+```
+muni-cli civicclerk categories exampletown            # boards and committees
+muni-cli civicclerk events exampletown --limit 5      # meetings, oldest first
+muni-cli civicclerk events exampletown --category 12 --from 2026-07-01 --to 2026-08-01
+muni-cli civicclerk agenda exampletown 7301           # a meeting's agenda tree
+muni-cli civicclerk text exampletown 9001             # best-effort text extraction
+muni-cli civicclerk download exampletown 9001 packet.pdf
+```
+
+`events` prints at most 15 meetings (one API page) unless you raise `--limit`; `--limit 0` walks the tenant's entire history — paced politely, so expect a long run on a large portal.
+
+## Raw payloads
+
+`categories`, `events`, and `agenda` accept `--json`, which prints the unmodified API payloads instead of formatted text — the same data every model carries in its `raw` attribute:
+
+```
+muni-cli civicclerk events exampletown --limit 3 --json | jq '.[0].eventName'
+```
+
+## Exit codes
+
+- `0` — success. This includes `text` printing "no text available": the API's extraction is best-effort and answers unknown ids the same way, so absence is within its contract.
+- `1` — a library error (unknown tenant, an id the API reports missing, network failure) or a filesystem error writing a download; one line on stderr, no traceback.
+- `2` — usage error (bad arguments).
+- `130` — interrupted with Ctrl-C.
+# Reference
+
+# API reference
+
+## Client
+
+Read-only client for one CivicClerk tenant's public API.
+
+Parameters:
+
+| Name                   | Type     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Default                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenant`               | `str`    | The tenant's subdomain — the exampletown in https://exampletown.api.civicclerk.com. Must be a single DNS label (letters, digits, and interior hyphens); it is interpolated into the API host and validated to that grammar, so a value containing a dot, slash, or other URL-significant character raises ValueError rather than silently addressing a different host.                                                                                                                                                                            | *required*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `http_client`          | \`Client | None\`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Optional preconfigured httpx.Client (for timeouts, proxies, or transport injection in tests). When omitted, the client creates and owns one that follows redirects — attachment downloads are commonly served as a redirect to file storage, so an injected client should set follow_redirects=True as well. Either way, calling close (or using with) closes it. Unless the caller set a User-Agent header, it is replaced with the library's libmuni/{version} identifier. Do not attach ambient credentials (an Authorization header, an API key, cookies) to this client — see Security below. |
+| `min_request_interval` | `float`  | Minimum seconds between requests — the client sleeps as needed so consecutive requests (including pagination and downloads) stay at least this far apart. Defaults to 1.0 (at most ~1 request/second) to stay polite toward small municipal servers and within a rate a human browsing the portal could produce; pass 0 to disable and own your request rate entirely. Pacing bounds the instantaneous rate only, not total volume — the portal operator's terms of use may also cap requests per day, which remains the caller's responsibility. | `1.0`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+Raises:
+
+| Type         | Description                                |
+| ------------ | ------------------------------------------ |
+| `ValueError` | If tenant is not a single valid DNS label. |
+
+Security
+
+Attacker-influenced request targets. Attachment downloads follow `AgendaAttachment.download_url` verbatim, event pagination follows the response's absolute `@odata.nextLink`, and the library-owned client follows redirects for every request. A malicious or compromised tenant can therefore choose a host the client connects to — including internal or link-local addresses (server-side request forgery). Any header on the injected `http_client` is sent along, and `httpx` strips only `Authorization` on a cross-origin redirect, not custom headers or cookies. Do not put credentials on the injected client; when using untrusted tenants, isolate the network and consider an `http_client` with `follow_redirects=False`.
+
+Exception diagnostics retain only a URL's scheme, host, port, and path. Userinfo, query strings, and fragments are omitted so signed attachment credentials and continuation tokens do not enter routine exception logs.
+
+No response-size bounds. The client streams downloads to disk in chunks (large files never load fully into memory), but neither downloads nor JSON list responses are capped: a hostile or broken endpoint can exhaust disk (downloads) or memory (a listing page is parsed whole). Bounding response size is the caller's responsibility, alongside retries, caching, and rate limiting — enforce it in the injected `http_client` or around the call.
+
+Example
+
+> > > with CivicClerkClient("exampletown") as client: ... for category in client.get_event_categories(): ... print(category.id, category.name)
+
+## get_event_categories
+
+```
+get_event_categories() -> list[EventCategory]
+```
+
+Fetch the tenant's meeting categories (boards and committees).
+
+Returns:
+
+| Type                  | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| `list[EventCategory]` | All categories the tenant publishes, in API order. |
+
+Raises:
+
+| Type                 | Description                                |
+| -------------------- | ------------------------------------------ |
+| `UnknownTenantError` | If the tenant subdomain does not exist.    |
+| `APIStatusError`     | If the API responds with an error status.  |
+| `NetworkError`       | If the request fails at the network level. |
+| `PayloadError`       | If the response body is not usable.        |
+
+## iter_events
+
+```
+iter_events(
+    *,
+    category_id: int | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> Iterator[Event]
+```
+
+Iterate the tenant's meetings, oldest first, fetching lazily.
+
+The API serves events in pages of 15; pages are fetched on demand (one HTTP request per page), so consuming only the first few events costs only the first request. Collect with `list(...)` when you need the complete result. With no filters that is the tenant's entire meeting history — potentially thousands of events and hundreds of requests — so pass a date range for anything interactive.
+
+Parameters:
+
+| Name          | Type   | Description | Default                                                                                                                                                 |
+| ------------- | ------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `category_id` | \`int  | None\`      | Only events of this category (board/committee) — see get_event_categories.                                                                              |
+| `from_date`   | \`date | None\`      | Only events on or after this date.                                                                                                                      |
+| `to_date`     | \`date | None\`      | Only events on or before this date. Dates are interpreted on the tenant's local wall-clock timeline, matching the API's datetime semantics (see Event). |
+
+Yields:
+
+| Type    | Description                                       |
+| ------- | ------------------------------------------------- |
+| `Event` | Matching events, ordered by start time ascending. |
+
+Raises:
+
+| Type                 | Description                                |
+| -------------------- | ------------------------------------------ |
+| `UnknownTenantError` | If the tenant subdomain does not exist.    |
+| `APIStatusError`     | If the API responds with an error status.  |
+| `NetworkError`       | If the request fails at the network level. |
+| `PayloadError`       | If a response body is not usable.          |
+
+## get_agenda
+
+```
+get_agenda(agenda_id: int) -> Agenda
+```
+
+Fetch the structured agenda (sections, items, attachments) for a meeting.
+
+Parameters:
+
+| Name        | Type  | Description                                                                                     | Default    |
+| ----------- | ----- | ----------------------------------------------------------------------------------------------- | ---------- |
+| `agenda_id` | `int` | The agenda's id — see Event.agenda_id, which is None when an event has no published agenda yet. | *required* |
+
+Returns:
+
+| Type     | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `Agenda` | The agenda's full item tree; use Agenda.walk_items to |
+| `Agenda` | flatten it.                                           |
+
+Raises:
+
+| Type             | Description                                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NotFoundError`  | If agenda_id does not exist. The API is inconsistent about how it signals this — sometimes a plain 404, sometimes a 200 with an empty/default payload — both are normalized to this error. |
+| `APIStatusError` | If the API responds with another error status.                                                                                                                                             |
+| `NetworkError`   | If the request fails at the network level.                                                                                                                                                 |
+| `PayloadError`   | If the response body is not usable.                                                                                                                                                        |
+
+## open_file
+
+```
+open_file(
+    file_id: int,
+) -> AbstractContextManager[FileStream]
+```
+
+Open a meeting-level file's response without writing it to disk.
+
+Use this when the destination filename depends on the response: the yielded `FileStream` reports the file's content type, extension, and size before its body is read, so a caller can compose a name from `PublishedFile.name` (which has no extension) and the stream's `suffix`. Performs exactly one HTTP request, paced like any other.
+
+The stream is only valid inside the `with` block; the response closes on exit. To download to a path you have already chosen, use `download_file` instead.
+
+Parameters:
+
+| Name      | Type  | Description                                                                             | Default    |
+| --------- | ----- | --------------------------------------------------------------------------------------- | ---------- |
+| `file_id` | `int` | A PublishedFile.file_id, as in download_file — never an AgendaAttachment.attachment_id. | *required* |
+
+Returns:
+
+| Type                                 | Description                                    |
+| ------------------------------------ | ---------------------------------------------- |
+| `AbstractContextManager[FileStream]` | A context manager yielding an open FileStream. |
+
+Raises:
+
+| Type             | Description                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NotFoundError`  | If file_id does not exist. Raised on entering the with block, including for the API's "HTTP 200 with a 0-byte body" way of saying a file is unavailable. |
+| `APIStatusError` | If the API responds with another error status.                                                                                                           |
+| `NetworkError`   | If the request fails at the network level.                                                                                                               |
+
+## open_attachment
+
+```
+open_attachment(
+    attachment: AgendaAttachment,
+) -> AbstractContextManager[FileStream]
+```
+
+Open an agenda attachment's response without writing it to disk.
+
+The streaming counterpart to `download_attachment`, and the attachment counterpart to `open_file`: the yielded `FileStream` reports the attachment's content type, extension, and size before its body is read, so a caller can compose a name from `AgendaAttachment.file_name` (which has no extension) and the stream's `suffix`.
+
+The bytes come from `attachment.download_url` — a signed, time-limited blob URL on a different host than the tenant API, requested with the same HTTP client. Expired URLs surface as `APIStatusError`.
+
+Security
+
+`download_url` is taken verbatim from the tenant's API response, so the tenant chooses the host this connects to (redirects included) — see the class `Security` note on server-side request forgery and injected-client credentials before fetching attachments from tenants you do not trust.
+
+Parameters:
+
+| Name         | Type               | Description                                       | Default    |
+| ------------ | ------------------ | ------------------------------------------------- | ---------- |
+| `attachment` | `AgendaAttachment` | The attachment to open; must have a download_url. | *required* |
+
+Returns:
+
+| Type                                 | Description                                               |
+| ------------------------------------ | --------------------------------------------------------- |
+| `AbstractContextManager[FileStream]` | A context manager yielding an open FileStream, valid only |
+| `AbstractContextManager[FileStream]` | inside its with block.                                    |
+
+Raises:
+
+| Type             | Description                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ValueError`     | If attachment.download_url is None — link attachments and unpublished files have no file to stream. Raised immediately, not on entering the with block. |
+| `NotFoundError`  | If the response body is empty, which the API also uses to mean "unavailable". Raised on entering the with block.                                        |
+| `APIStatusError` | If the API responds with an error status (including an expired signed URL).                                                                             |
+| `NetworkError`   | If the request fails at the network level.                                                                                                              |
+
+## download_file
+
+```
+download_file(file_id: int, destination: Path) -> Path
+```
+
+Download a meeting-level file to `destination`.
+
+Streams the response in chunks, so large files never load fully into memory. There is no existence-check endpoint (`HEAD` answers 405) and `Range` headers are ignored, so downloads cannot be resumed — a failed download must be retried from the start.
+
+The one-liner for when you already know the name you want. When the name depends on the file's type, open the stream with `open_file` instead: it reports the content type, extension, and size before the body is read, and `destination` here is written verbatim.
+
+Parameters:
+
+| Name          | Type   | Description                                                                                                                                                                                                               | Default    |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `file_id`     | `int`  | A PublishedFile.file_id from Event.published_files. This id lives in a different namespace than AgendaAttachment.attachment_id — never pass an attachment id here; download attachments with download_attachment instead. | *required* |
+| `destination` | `Path` | Local path to write the file to. Left untouched (no partial file) if the download fails.                                                                                                                                  | *required* |
+
+Returns:
+
+| Type   | Description                |
+| ------ | -------------------------- |
+| `Path` | destination, for chaining. |
+
+Raises:
+
+| Type             | Description                                                                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NotFoundError`  | If file_id does not exist. The API answers unknown ids with HTTP 200 and a 0-byte body rather than a 404, so an empty body is treated as "not found" too. |
+| `APIStatusError` | If the API responds with another error status.                                                                                                            |
+| `NetworkError`   | If the request fails at the network level.                                                                                                                |
+
+## download_attachment
+
+```
+download_attachment(
+    attachment: AgendaAttachment, destination: Path
+) -> Path
+```
+
+Download an agenda attachment to `destination` via its signed URL.
+
+Streams the response in chunks from `attachment.download_url` — a signed, time-limited blob URL on a different host than the tenant API, requested with the same injected HTTP client. Signed URLs expire; a request against an expired one surfaces as `APIStatusError`, not a distinct error type.
+
+Security
+
+`download_url` comes verbatim from the tenant's API response, so the tenant chooses the host this connects to (redirects included). See the class `Security` note on server-side request forgery, injected-client credentials, and the absence of a response-size cap before downloading from untrusted tenants.
+
+The one-liner for when you already know the name you want. When the name depends on the file's type, open the stream with `open_attachment` instead; `destination` here is written verbatim.
+
+Parameters:
+
+| Name          | Type               | Description                                                                              | Default    |
+| ------------- | ------------------ | ---------------------------------------------------------------------------------------- | ---------- |
+| `attachment`  | `AgendaAttachment` | The attachment to download; must have a download_url.                                    | *required* |
+| `destination` | `Path`             | Local path to write the file to. Left untouched (no partial file) if the download fails. | *required* |
+
+Returns:
+
+| Type   | Description                |
+| ------ | -------------------------- |
+| `Path` | destination, for chaining. |
+
+Raises:
+
+| Type             | Description                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ValueError`     | If attachment.download_url is None — check it (and attachment.is_link) before calling; link attachments and unpublished files have no file to download. |
+| `NotFoundError`  | If the response body is empty, which the API also uses to mean "unavailable".                                                                           |
+| `APIStatusError` | If the API responds with an error status (including an expired signed URL).                                                                             |
+| `NetworkError`   | If the request fails at the network level.                                                                                                              |
+
+## get_file_text
+
+```
+get_file_text(file_id: int) -> str | None
+```
+
+Fetch the API's best-effort plain-text extraction of a file.
+
+This is a best-effort upstream feature, not a guarantee: the API returns clean extracted text for some files, and an empty 200 response for others — including files that do have a text layer, and invalid ids — without distinguishing why. `None` means the API did not provide text; it does not mean the file lacks one.
+
+Parameters:
+
+| Name      | Type  | Description                                   | Default    |
+| --------- | ----- | --------------------------------------------- | ---------- |
+| `file_id` | `int` | A PublishedFile.file_id, as in download_file. | *required* |
+
+Returns:
+
+| Type  | Description |
+| ----- | ----------- |
+| \`str | None\`      |
+
+Raises:
+
+| Type             | Description                                    |
+| ---------------- | ---------------------------------------------- |
+| `NotFoundError`  | If file_id does not exist (a plain 404).       |
+| `APIStatusError` | If the API responds with another error status. |
+| `NetworkError`   | If the request fails at the network level.     |
+
+## close
+
+```
+close() -> None
+```
+
+Close the underlying HTTP client.
+
+## Models
+
+All models are frozen dataclasses. Each keeps the unmodified API payload in its `raw` attribute, so upstream fields the library does not model yet stay reachable.
+
+One meeting (past or upcoming) on a tenant's calendar.
+
+Datetime semantics: the API stamps a `Z` (UTC) suffix on values that are actually local wall-clock times, so all datetimes on this model are naive and carry the wall-clock reading as published — an event at `19:00` local arrives as `19:00`, whatever the timezone.
+
+## id
+
+```
+id: int
+```
+
+The event's stable numeric id.
+
+## starts_at
+
+```
+starts_at: datetime
+```
+
+Scheduled start as a naive local wall-clock datetime.
+
+## name
+
+```
+name: str | None = None
+```
+
+Event title.
+
+## description
+
+```
+description: str | None = None
+```
+
+Event description, `None` when blank.
+
+## category_id
+
+```
+category_id: int | None = None
+```
+
+Id of the event's category (board or committee).
+
+## category_name
+
+```
+category_name: str | None = None
+```
+
+Name of the event's category.
+
+## agenda_id
+
+```
+agenda_id: int | None = None
+```
+
+Key for the structured agenda, or `None` when no agenda is published (the API encodes that as `0`).
+
+## agenda_name
+
+```
+agenda_name: str | None = None
+```
+
+Title of the published agenda.
+
+## duration
+
+```
+duration: timedelta | None = None
+```
+
+Scheduled length, or `None` when the portal left it unset (the API encodes that as zero hours and minutes).
+
+## location
+
+```
+location: EventLocation | None = None
+```
+
+Physical venue, or `None` when no address is given.
+
+## virtual_meeting_url
+
+```
+virtual_meeting_url: str | None = None
+```
+
+Join link (Zoom, Teams, ...) when the portal publishes one.
+
+## youtube_video_id
+
+```
+youtube_video_id: str | None = None
+```
+
+YouTube id of the meeting recording, if any.
+
+## media_stream_url
+
+```
+media_stream_url: str | None = None
+```
+
+Direct stream URL of the recording, if any.
+
+## published_files
+
+```
+published_files: list[PublishedFile] = field(
+    default_factory=list
+)
+```
+
+Meeting-level documents (agenda, packet, minutes, ...) published for this event.
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## recording_url
+
+```
+recording_url: str | None
+```
+
+A watchable URL for the meeting recording, if one exists.
+
+Prefers the YouTube video when the portal uploaded one, falling back to the direct media stream; `None` when the event has no recording.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> Event
+```
+
+Build an `Event` from one `Events` response object.
+
+Raises:
+
+| Type           | Description                                                           |
+| -------------- | --------------------------------------------------------------------- |
+| `PayloadError` | If the load-bearing id or eventDate fields are absent or unparseable. |
+
+A meeting category (board, commission, or committee) of a tenant.
+
+## id
+
+```
+id: int
+```
+
+The category's stable numeric id, used to filter events.
+
+## name
+
+```
+name: str | None = None
+```
+
+Human-readable category name (`None` if the API omits it).
+
+## sort_order
+
+```
+sort_order: int | None = None
+```
+
+Position in the tenant's configured display order.
+
+## is_public
+
+```
+is_public: bool | None = None
+```
+
+Whether the tenant marks the category public.
+
+## parent_id
+
+```
+parent_id: int | None = None
+```
+
+Id of the parent category, or `None` for top-level categories (the API encodes "no parent" as `-1`).
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> EventCategory
+```
+
+Build an `EventCategory` from one API response object.
+
+Parameters:
+
+| Name  | Type             | Description                                            | Default    |
+| ----- | ---------------- | ------------------------------------------------------ | ---------- |
+| `raw` | `dict[str, Any]` | One entry of an EventCategories response's value list. | *required* |
+
+Returns:
+
+| Type            | Description                                  |
+| --------------- | -------------------------------------------- |
+| `EventCategory` | The parsed category, with raw kept verbatim. |
+
+Raises:
+
+| Type           | Description                             |
+| -------------- | --------------------------------------- |
+| `PayloadError` | If the load-bearing id field is absent. |
+
+The physical address an event is held at.
+
+All fields are best-effort; portals frequently use `address1` as a free-text room or venue description.
+
+## address1
+
+```
+address1: str | None = None
+```
+
+First address line (often the venue or room).
+
+## address2
+
+```
+address2: str | None = None
+```
+
+Second address line.
+
+## city
+
+```
+city: str | None = None
+```
+
+City name.
+
+## state
+
+```
+state: str | None = None
+```
+
+State or region.
+
+## zip_code
+
+```
+zip_code: str | None = None
+```
+
+Postal code.
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> EventLocation | None
+```
+
+Build an `EventLocation`, or `None` when it is empty.
+
+The API always includes an `eventLocation` object; when every address component is blank there is no usable location and this returns `None` so callers can simply test truthiness.
+
+One meeting-level document published alongside an event.
+
+## file_id
+
+```
+file_id: int
+```
+
+Stable numeric id, used to download the file.
+
+## file_type
+
+```
+file_type: str | None = None
+```
+
+The portal's label for the document ("Agenda", "Agenda Packet", "Minutes", ...), or `None` if omitted.
+
+## name
+
+```
+name: str | None = None
+```
+
+Human-readable file title.
+
+## published_at
+
+```
+published_at: datetime | None = None
+```
+
+When the portal published the file, as a naive datetime (the API's timezone markers are unreliable; see `Event`).
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> PublishedFile
+```
+
+Build a `PublishedFile` from one `publishedFiles` entry.
+
+Raises:
+
+| Type           | Description                                 |
+| -------------- | ------------------------------------------- |
+| `PayloadError` | If the load-bearing fileId field is absent. |
+
+The structured agenda (sections, items, attachments) for one meeting.
+
+## agenda_id
+
+```
+agenda_id: int
+```
+
+The agenda's stable numeric id — matches `Event.agenda_id` (see that attribute for the `0`/"no agenda" sentinel, already normalized to `None` there).
+
+## items
+
+```
+items: list[AgendaItem] = field(default_factory=list)
+```
+
+Top-level agenda nodes, ordered by `sort_order`. Use `walk_items` to flatten the whole tree.
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API response this model was parsed from.
+
+## walk_items
+
+```
+walk_items() -> Iterator[AgendaItem]
+```
+
+Yield every item in the agenda tree, depth-first in sort order.
+
+Each item is yielded before its children, and children are visited in `sort_order` before the next sibling — the same order the portal displays the agenda in — so callers can flatten the section/item tree into one ordered sequence without recursing themselves.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> Agenda
+```
+
+Build an `Agenda` from a `GET /Meetings/{agendaId}` response.
+
+Raises:
+
+| Type           | Description                             |
+| -------------- | --------------------------------------- |
+| `PayloadError` | If the load-bearing id field is absent. |
+
+One node (section or item) in a structured agenda's tree.
+
+## item_id
+
+```
+item_id: int
+```
+
+Stable numeric id of the agenda item.
+
+## name
+
+```
+name: str | None = None
+```
+
+Item title.
+
+## is_section
+
+```
+is_section: bool = False
+```
+
+Whether this node is a section heading rather than a substantive agenda item.
+
+## sort_order
+
+```
+sort_order: int | None = None
+```
+
+Position of this item within the whole agenda's flat display order (shared across nesting levels).
+
+## attachments
+
+```
+attachments: list[AgendaAttachment] = field(
+    default_factory=list
+)
+```
+
+Documents attached directly to this item.
+
+## children
+
+```
+children: list[AgendaItem] = field(default_factory=list)
+```
+
+Nested items, ordered by `sort_order`.
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> AgendaItem
+```
+
+Build an `AgendaItem` from one `items`/`childItems` entry.
+
+Raises:
+
+| Type           | Description                             |
+| -------------- | --------------------------------------- |
+| `PayloadError` | If the load-bearing id field is absent. |
+
+One document attached to a structured agenda item.
+
+## attachment_id
+
+```
+attachment_id: int
+```
+
+Stable numeric id of the attachment. Note this id is reused in a different namespace by the file-download endpoint, so it must never be used to synthesize a download URL — use `download_url` instead.
+
+## file_name
+
+```
+file_name: str | None = None
+```
+
+Human-readable title of the attachment.
+
+## is_link
+
+```
+is_link: bool = False
+```
+
+Whether this attachment is a link rather than a downloadable file — link attachments have no `download_url`.
+
+## download_url
+
+```
+download_url: str | None = None
+```
+
+Signed, time-limited URL to download the file directly, or `None` when absent (typically because the attachment is a link, or the portal has not published a file).
+
+## raw
+
+```
+raw: dict[str, Any] = field(
+    default_factory=dict, repr=False
+)
+```
+
+The unmodified API object this model was parsed from.
+
+## from_api
+
+```
+from_api(raw: dict[str, Any]) -> AgendaAttachment
+```
+
+Build an `AgendaAttachment` from one `attachmentsList` entry.
+
+Raises:
+
+| Type           | Description                             |
+| -------------- | --------------------------------------- |
+| `PayloadError` | If the load-bearing id field is absent. |
+
+## Errors
+
+Every operational error any libmuni client raises subclasses `MuniError`. The CivicClerk client's errors subclass `CivicClerkError`, which in turn subclasses `MuniError`, so a caller spanning platforms can catch them all at once. Two Python built-ins stay outside the hierarchy by design: `ValueError` for an invalid tenant or argument, and `OSError` for a failed local file write.
+
+Bases: `Exception`
+
+Base class for libmuni's operational errors (requests, parsing, downloads).
+
+Bases: `MuniError`
+
+Base class for every error the CivicClerk client raises.
+
+Bases: `APIStatusError`
+
+The tenant subdomain does not appear to exist.
+
+The API returns an empty 404 both for unknown tenants and unknown paths; because this library only requests endpoints that exist on every tenant, a 404 on an always-present endpoint (such as `/EventCategories`) is interpreted as "no such tenant" — most often a typo in the tenant name.
+
+Bases: `APIStatusError`
+
+The id-parameterized resource does not exist for this tenant.
+
+Raised by id-parameterized lookups (such as `CivicClerkClient.get_agenda`) when the requested id has no data — unlike `UnknownTenantError`, this says nothing about whether the tenant itself exists. The API is inconsistent about how it signals this: some invalid ids answer with a plain 404, while others answer 200 with an empty/default payload (`id` reset to `0`, no items) — both are surfaced as this error.
+
+Bases: `CivicClerkError`
+
+The API answered with an error status code.
+
+Attributes:
+
+| Name          | Type | Description                           |
+| ------------- | ---- | ------------------------------------- |
+| `status_code` |      | The HTTP status code of the response. |
+| `url`         |      | The URL that was requested.           |
+
+Bases: `CivicClerkError`
+
+The request failed before a valid HTTP response arrived.
+
+Covers DNS failures, refused connections, timeouts, and TLS problems. The originating `httpx.TransportError` is the `__cause__`.
+
+Bases: `CivicClerkError`
+
+The API responded successfully but the body was not usable.
+
+Raised when a response is not valid JSON, or when a load-bearing field (an id or date the models cannot function without) is missing. Optional fields never raise this — they parse to `None`.
+
+# Architecture decisions
+
+## Thin typed client, not a navigable domain model
+
+v1 exposes one client class whose methods map ~1:1 to API endpoints, each returning typed models with a raw-payload escape hatch.
+
+The API is undocumented and its behavior (pagination, optional fields) is still being learned; explicit I/O keeps every HTTP request visible so callers own retries and caching, and pure parse functions stay testable against recorded fixtures. A lazy-fetching domain layer (Site → Board → Meeting) hides I/O and locks in design guesses too early — it can be added later on top of the client without breaking anything.
+
+## Lenient two-tier parsing on frozen dataclasses, no pydantic
+
+Each model declares a tiny set of load-bearing fields (ids, dates) whose absence raises a typed payload error; every other field is best-effort Optional and never raises. Models are frozen dataclasses carrying the raw response dict; parsing is hand-written pure functions.
+
+The upstream API is undocumented and makes no compatibility promises, so strict schema validation would turn every cosmetic upstream change into a caller-facing crash — strictness against a schema we don't control is a liability, not a safety feature. The `raw` dict is the contract with the future: new upstream fields are reachable immediately and modeled in a later minor release. Pydantic was rejected because its value is exactly the validation we don't want, at the cost of a heavy dependency; hand-written parse functions keep the runtime dependency footprint at httpx alone and put each lenient/strict decision in plain sight. Library semver covers the library surface only; upstream drift is detected by an opt-in live contract test suite and handled in releases.
+
+## Polite pacing by default; retries and caching stay caller-owned
+
+The client enforces a minimum interval between requests (`min_request_interval`, default 1.0 s, `0` disables); it still ships no retries or caching.
+
+CivicClerk tenants are small municipal servers with no observed rate enforcement, and one unfiltered listing call can fan out to hundreds of paged requests — a docs-only recommendation protects the service only when users read docs. Well-regarded clients of unenforced services pace proactively by default (scrapelib, built for state-legislature scraping, defaults to 60 requests/minute; PyGithub added `seconds_between_requests=0.25` after users tripped abuse detection in the wild), and every request now carries this library's name in its User-Agent, so misbehavior is attributable to the library. The default of 1 s (≈1 request/second) matches scrapelib and stays within what the platform terms of use frame as a rate "a human can reasonably produce"; the faster PyGithub value targets a large service's abuse detection, not a tiny municipal server, so it is not the right anchor here. Pacing bounds the instantaneous rate only; the terms' per-day request ceiling is a volume limit that pacing cannot enforce, so it stays caller-owned and documented (`docs/usage.md`) rather than encoded — the numbers are the operator's to set and change, and duplicating them invites drift. The gate lives in the client (not the httpx transport) so injecting a client for unrelated reasons does not silently shed politeness — disabling is an explicit constructor argument. Retries and caching remain caller policy: they are the genuinely subtle, use-case-dependent pieces, and a configured `httpx.Client` (or a wrapper library such as `careful`) can be injected to supply them. `careful` was considered for the pacing itself and rejected inside the library: pre-1.0 API, adds a transitive dependency (structlog) against the httpx-only footprint, and two of its three features are ones we deliberately leave to callers.
+
+## Naive wall-clock datetimes — no upstream timezone source exists
+
+Model datetimes are naive local wall-clock values, and the library makes no attempt to attach a timezone.
+
+The API stamps a `Z` (UTC) suffix on datetimes that are actually local wall-clock times (a 7 pm meeting arrives as `19:00:00Z`), and nothing upstream reliably declares the tenant's timezone: the OData `$metadata` shows the only timezone-typed fields are `secondaryIanaTimeZone` / `secondaryAbbreviatedTimeZone` on events — observed empty across five public tenants in five US states (2026-07-14) — and the `Settings` entity carries only portal display labels. Deriving a zone from the event location's address would bake in per-tenant geography guesses, which the tenant-generic rule forbids. Callers who need aware datetimes attach the municipality's timezone themselves; re-verify with the live suite before revisiting.
+
+## Tenant-generic by construction
+
+The client takes the CivicClerk site subdomain as its only required constructor argument, and no municipality-specific policy (file-naming conventions, agenda-title parsing, meeting-selection rules) lives in the library. Such policy varies per municipality and per consuming tool; baking any one municipality's rules in would misparse every other tenant. Recorded test fixtures are scrubbed to fictional tenants for the same reason.
+
+## Typed exceptions are the diagnostic boundary; logging stays caller-owned
+
+The library emits no logs of its own. Its operations have no hidden retries, caches, or background state to explain, so typed exceptions carry the useful library context while an injected httpx client or the consuming application owns request timing and wire-level observability. This also avoids duplicating logs at two layers and reduces the chance that signed attachment URLs are persisted; exception-visible URLs omit userinfo, queries, and fragments.
+
+## Downloads expose the response as a context manager
+
+A caller must choose a destination path before the request is made, but the only authoritative source for a file's type is the response, and `HEAD` answers 405 — so there is no way to ask ahead of time. The result was that every caller hardcoded `.pdf` and would be silently wrong the day a tenant published something else.
+
+`open_file` and `open_attachment` yield a `FileStream` after the headers arrive and before the body is read — the one moment the naming information is actionable. The alternatives both force the decision before the information exists: a result object means downloading to a temp path and renaming afterward, and a directory-valued destination would write the server's own filename, which a live probe showed to be `<file_id>.pdf` for meeting files and a GUID for attachments — strictly worse than the human name the caller already holds in `PublishedFile.name` or `AgendaAttachment.file_name`.
+
+So the caller owns the name and the response owns the extension. `save()` writes its destination verbatim rather than appending a missing suffix: the suffix is in scope inside the `with` block, so auto-appending would buy one string interpolation while making the return value diverge from the argument and making an intentionally extensionless file impossible.
+
+`suffix` is derived, never guessed, because no single source covers both endpoints: the `Content-Disposition` filename (meeting files send one whose name is only the id restated, but whose extension is truthful), then the content type, then the request URL's path (which rescues attachments, whose GUID blob URLs end in a real extension but carry no `Content-Disposition`). When all three yield nothing it is `None` — the bytes are not sniffed, and a guessed `.pdf` would be worse than an honest absence.
+
+Emptiness is settled as the stream is opened, not partway through iteration: the API's "HTTP 200 with a 0-byte body" way of saying *unavailable* has to raise `NotFoundError` from the `with` statement itself, or a caller who only inspects the headers would happily write a 0-byte PDF. When `Content-Length` is absent that requires reading the first chunk, which `iter_bytes` then replays — otherwise every chunked body would silently lose its first chunk.
+
+`download_file` and `download_attachment` are retained and reimplemented on the context managers. They remain the right one-liner for "I already know the name I want", and removing them would be a breaking change that buys nothing.
+
+## Vendor clients in one package, unified by jurisdiction rather than a shared model
+
+`libmuni` ships one thin typed client per municipal software vendor (`libmuni.civicclerk`, later `libmuni.municode`, `libmuni.civicplus`) in a single distribution, and deliberately defines no cross-vendor domain model.
+
+A town's public record is split across vendors — CivicClerk publishes meetings, Municode publishes the charter and ordinances, CivicPlus runs the city site — so what unifies them is the jurisdiction, not a schema. A `Meeting` and an `Ordinance` share no field worth abstracting, and a common supertype would flatten both; the shared surface here is a kind of client, not a kind of record. Separate distributions per vendor were rejected as premature at one maintainer and an httpx-only footprint — splitting a package later is mechanical, while merging published names is not. Callers who want a normalized cross-platform record should target the Open Civic Data spec, which already exists and is maintained; emitting it stays a caller or application concern, because OCD requires a timezone this library has no source for (see "Naive wall-clock datetimes").
+
+## Exception root now, shared core deferred until a second client
+
+`MuniError` is the root of every operational exception the library raises (request, parse, and download failures), and each vendor's hierarchy descends from it (`CivicClerkError(MuniError)`). Invalid arguments raise `ValueError` and local file writes raise `OSError`, standard built-ins left outside the hierarchy by design. No shared HTTP, streaming, or parsing core exists yet — each vendor client owns its own.
+
+The exception root is the one piece of shared surface that is free to add before the first release and a breaking change after it: callers of a multi-vendor library need a single base to catch. Everything else that currently looks generic — the pacing gate, User-Agent injection, `FileStream`, DNS-label tenant validation — is generic only by coincidence of there being a single example. Municode publishes codified text with no tenant subdomain and no OData pagination, so a core extracted today would be designed against a sample size of one. The second client reveals the real seam; until then, duplication is cheaper than the wrong abstraction.

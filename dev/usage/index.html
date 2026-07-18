@@ -1,0 +1,907 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unofficial read-only Python client for the CivicClerk public meeting-portal API">
+      
+      
+      
+        <link rel="canonical" href="https://chapinb.com/libmuni/dev/usage/">
+      
+      
+        <link rel="prev" href="../cheatsheet/">
+      
+      
+        <link rel="next" href="../cli/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Usage guide - libmuni</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#usage-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="libmuni" class="md-header__button md-logo" aria-label="libmuni" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            libmuni
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Usage guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chapinb/libmuni" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chapinb/libmuni
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="libmuni" class="md-nav__button md-logo" aria-label="libmuni" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    libmuni
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chapinb/libmuni" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chapinb/libmuni
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cheatsheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cheat sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datetimes-are-local-wall-clock-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datetimes are local wall-clock time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-pacing-retries-and-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request pacing, retries, and caching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptable-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptable use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#listing-meetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listing meetings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-a-file-you-have-not-downloaded-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming a file you have not downloaded yet
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reaching-unmodeled-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reaching unmodeled fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datetimes-are-local-wall-clock-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datetimes are local wall-clock time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-pacing-retries-and-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request pacing, retries, and caching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptable-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptable use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#listing-meetings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listing meetings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-a-file-you-have-not-downloaded-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming a file you have not downloaded yet
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reaching-unmodeled-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reaching unmodeled fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="usage-guide">Usage guide</h1>
+<p>Everything here assumes the <a href="../">quickstart</a> basics: one
+<code>CivicClerkClient</code> per tenant, used as a context manager.</p>
+<h2 id="datetimes-are-local-wall-clock-time">Datetimes are local wall-clock time</h2>
+<p>The API stamps a <code>Z</code> (UTC) suffix on datetimes that are actually local
+wall-clock times — a 7 pm meeting arrives as <code>19:00:00Z</code> whatever the
+municipality's timezone — and nothing in the API declares the tenant's
+timezone (verified against the OData schema and live tenants across five
+US states). The library therefore returns <strong>naive</strong> datetimes carrying the
+local reading.</p>
+<p>If you need aware datetimes, attach the municipality's timezone yourself:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">zoneinfo</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZoneInfo</span>
+
+<span class="n">local_tz</span> <span class="o">=</span> <span class="n">ZoneInfo</span><span class="p">(</span><span class="s2">&quot;America/New_York&quot;</span><span class="p">)</span>  <span class="c1"># you know your municipality</span>
+<span class="n">aware</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">starts_at</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">local_tz</span><span class="p">)</span>
+</code></pre></div>
+<p>Date filters on <code>iter_events</code> are interpreted on the same local wall-clock
+timeline, so "meetings this week" means the municipality's week — no
+conversion needed.</p>
+<h2 id="request-pacing-retries-and-caching">Request pacing, retries, and caching</h2>
+<p>The client is polite by default: consecutive requests (including
+pagination pages and downloads) are spaced at least <code>min_request_interval</code>
+seconds apart — 1 s out of the box, i.e. at most ~1 request/second
+against what are typically small municipal servers, a rate a human
+browsing the portal could produce. Pacing bounds the instantaneous rate
+only, not total volume — see <a href="#acceptable-use">Acceptable use</a> below.</p>
+<div class="highlight"><pre><span></span><code><span class="n">client</span> <span class="o">=</span> <span class="n">CivicClerkClient</span><span class="p">(</span><span class="s2">&quot;exampletown&quot;</span><span class="p">,</span> <span class="n">min_request_interval</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># you own the rate</span>
+</code></pre></div>
+<p>Retries and caching are deliberately <strong>not</strong> built in — they are policy
+that varies per application. Configure them on an <code>httpx.Client</code> and
+inject it:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">libmuni.civicclerk</span><span class="w"> </span><span class="kn">import</span> <span class="n">CivicClerkClient</span>
+
+<span class="n">http</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span>
+    <span class="n">timeout</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span>
+    <span class="n">transport</span><span class="o">=</span><span class="n">httpx</span><span class="o">.</span><span class="n">HTTPTransport</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>  <span class="c1"># connect-level retries</span>
+    <span class="n">follow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># file streams may redirect to storage</span>
+<span class="p">)</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">CivicClerkClient</span><span class="p">(</span><span class="s2">&quot;exampletown&quot;</span><span class="p">,</span> <span class="n">http_client</span><span class="o">=</span><span class="n">http</span><span class="p">)</span>
+</code></pre></div>
+<p>The client the library creates for you follows redirects already; an
+injected client keeps httpx's default of <em>not</em> following them, so set
+<code>follow_redirects=True</code> unless you have a reason not to.</p>
+<p>Treat every API-provided request target as untrusted: attachment downloads use
+the response's signed URL, event pagination follows its absolute continuation
+URL, and enabled redirects apply to all requests. A malicious tenant can direct
+those requests to internal services, carrying custom headers from an injected
+client. Do not attach credentials to that client, and isolate its network when
+using tenants you do not trust. See the packaged security policy for the full
+threat model.</p>
+<p>For response-level retries with backoff and a development cache, consider
+wrapping your client with <a href="https://pypi.org/project/careful/">careful</a> —
+a library built for exactly this kind of polite scraping — and injecting
+the result.</p>
+<h2 id="acceptable-use">Acceptable use</h2>
+<p>The portals this library reads are operated under the platform vendor's
+and the individual jurisdiction's terms of use, which bind anyone
+accessing them — no account required. Those terms commonly restrict
+automated access and cap total requests over a window (for example, a
+daily page-request ceiling with penalties above it), and they can change
+at any time. This library does not reproduce or track them: read the
+terms for the portals you query and keep your usage within them.</p>
+<p>The default pacing keeps the instantaneous rate to roughly what a human
+browsing the portal would produce, but it does <strong>not</strong> bound total
+volume — a single unfiltered listing can fan out to hundreds of paged
+requests, and repeated runs add up. Staying under any per-day or
+per-window limit is the caller's responsibility: filter listings, cache
+results, and space out repeated runs.</p>
+<h2 id="listing-meetings">Listing meetings</h2>
+<p><code>iter_events</code> is lazy: the API serves pages of 15 and the client fetches
+each page only when iteration reaches it. Collect with <code>list(...)</code> when
+you want everything.</p>
+<p>With <strong>no filters it walks the tenant's entire meeting history</strong> —
+potentially thousands of events and hundreds of paged requests — so pass a
+date range for anything interactive:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dt</span>
+
+<span class="n">recent</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">iter_events</span><span class="p">(</span>
+        <span class="n">from_date</span><span class="o">=</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">-</span> <span class="n">dt</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">),</span>
+        <span class="n">to_date</span><span class="o">=</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div>
+<h2 id="downloads">Downloads</h2>
+<p>Two id namespaces exist, and they must not be mixed:</p>
+<ul>
+<li><code>PublishedFile.file_id</code> (meeting-level documents) → <code>download_file</code></li>
+<li><code>AgendaAttachment</code> (agenda-item documents) → <code>download_attachment</code></li>
+</ul>
+<p>The namespaces overlap, so an attachment id passed to <code>download_file</code>
+usually raises <code>NotFoundError</code> — but when the number happens to exist as a
+file id too, it silently downloads the wrong document. Always go through
+the matching method.</p>
+<p>Practical limits inherited from the API:</p>
+<ul>
+<li><strong>No resume.</strong> <code>Range</code> headers are ignored and <code>HEAD</code> is rejected, so a
+  failed download restarts from zero. The library never leaves a partial
+  file at the destination, and an existing destination remains unchanged.</li>
+<li><strong>Empty 200 means unavailable.</strong> The API answers unknown or unpublished
+  files with an empty body and status 200; the library normalizes that to
+  <code>NotFoundError</code>.</li>
+<li><strong>Attachment URLs expire.</strong> <code>AgendaAttachment.download_url</code> is a
+  signed, time-limited URL; an expired one surfaces as <code>APIStatusError</code>.</li>
+<li><code>get_file_text</code> is best-effort upstream text extraction: <code>None</code> means
+  the API returned no text, not that the document has none.</li>
+</ul>
+<h2 id="naming-a-file-you-have-not-downloaded-yet">Naming a file you have not downloaded yet</h2>
+<p><code>download_file</code> and <code>download_attachment</code> need a destination path before the
+request goes out — but the only authoritative source for a file's type is the
+response, and <code>HEAD</code> is rejected, so there is no way to ask ahead of time.
+Hardcoding <code>.pdf</code> is right until the day a tenant publishes something else.</p>
+<p><code>open_file</code> and <code>open_attachment</code> hand you the response at the one moment the
+information is actionable: after the headers arrive, before the body is read.
+Both yield a <code>FileStream</code>, valid only inside the <code>with</code> block.</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">published_files</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">file_id</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+        <span class="c1"># stream.content_type -&gt; &quot;application/pdf&quot; (or None)</span>
+        <span class="c1"># stream.size         -&gt; bytes you will receive, or None if undeclared</span>
+        <span class="n">stream</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">downloads</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="n">stream</span><span class="o">.</span><span class="n">suffix</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The name is yours and the extension is the response's, and they meet inside
+the block: <code>PublishedFile.name</code> and <code>AgendaAttachment.file_name</code> carry no
+extension, and <code>stream.suffix</code> is derived from the response — the
+<code>Content-Disposition</code> filename, else the content type, else the URL path. It
+is <code>None</code> when the response gives no basis for one, rather than guessing.</p>
+<p><code>save(destination)</code> writes <strong>exactly</strong> the path you hand it: an extensionless
+destination stays extensionless, and nothing is renamed or appended. It never
+leaves a partial file behind.</p>
+<p>To skip the disk entirely — streaming into a parser or an object store —
+consume the bytes directly:</p>
+<div class="highlight"><pre><span></span><code><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">open_attachment</span><span class="p">(</span><span class="n">attachment</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stream</span><span class="o">.</span><span class="n">iter_bytes</span><span class="p">())</span>  <span class="c1"># or feed the chunks somewhere</span>
+</code></pre></div>
+<p>The stream is single-pass and closes on exit; <code>iter_bytes</code> and <code>save</code> are
+invalid afterward. An unavailable file (the empty-200 trap above) raises
+<code>NotFoundError</code> from the <code>with</code> statement itself, so a caller that only
+inspects the headers can never write a 0-byte file.</p>
+<h2 id="errors">Errors</h2>
+<p>Every operational error subclasses <code>CivicClerkError</code> — see the
+<a href="../api/#errors">API reference</a> for the full taxonomy and when each error
+is raised. Invalid arguments raise <code>ValueError</code> and local file writes raise
+<code>OSError</code>, both standard built-ins outside the hierarchy.</p>
+<p>Absent optional data is never an error: an event with no published
+materials has an empty <code>published_files</code>, not an exception. A blanket
+<code>except CivicClerkError</code> catches everything the client can raise.</p>
+<p>The library deliberately emits no logs of its own. Typed exceptions provide
+safe library-level diagnostics, with credentials removed from their URLs;
+configure logging or event hooks on your injected <code>httpx.Client</code> when you need
+request timing, retry, or wire-level observability. Ensure that application or
+HTTP-client logging also redacts signed URLs, because models retain their full
+download URLs for making requests.</p>
+<h2 id="reaching-unmodeled-fields">Reaching unmodeled fields</h2>
+<p>Every model keeps its unmodified API payload in <code>.raw</code>. When the upstream
+API grows a field the library doesn't model yet, it is already reachable:</p>
+<div class="highlight"><pre><span></span><code><span class="n">event</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="s2">&quot;secondaryIanaTimeZone&quot;</span><span class="p">]</span>  <span class="c1"># anything the API sent</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
