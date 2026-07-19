@@ -109,6 +109,55 @@ recent = list(
 )
 ```
 
+### Filtering to one board
+
+Meetings span every board and committee. Pass `category_id` to restrict the
+listing to a single one; `get_event_categories` lists the ids:
+
+```python
+for category in client.get_event_categories():
+    print(category.id, category.name)
+
+council = list(
+    client.iter_events(
+        category_id=12,  # an id from the listing above
+        from_date=dt.date.today(),
+        to_date=dt.date.today() + dt.timedelta(days=30),
+    )
+)
+```
+
+Each `Event` also carries how to attend live or watch later:
+`virtual_meeting_url` is the join link (`None` when the portal publishes none),
+and the `recording_url` property resolves to the YouTube video when one was
+uploaded and the direct media stream otherwise (`None` when neither exists).
+
+```python
+for event in council:
+    if event.virtual_meeting_url:
+        print("join:", event.virtual_meeting_url)
+    if event.recording_url:
+        print("watch:", event.recording_url)
+```
+
+## Reading an agenda
+
+`Event.agenda_id` is `None` until the portal publishes an agenda; when it is
+set, `get_agenda` returns the full structure. An agenda is a tree, not a flat
+list — sections contain items — and `walk_items` flattens it depth-first in the
+order the portal displays, so you can iterate it without recursing yourself:
+
+```python
+event = next(e for e in council if e.agenda_id)
+agenda = client.get_agenda(event.agenda_id)
+for item in agenda.walk_items():
+    indent = "  " if item.is_section else "    "
+    print(indent + (item.name or ""))
+```
+
+Each item carries its own attachments in `item.attachments`; downloading them
+is covered next.
+
 ## Downloads
 
 Two id namespaces exist, and they must not be mixed:
@@ -120,6 +169,23 @@ The namespaces overlap, so an attachment id passed to `download_file`
 usually raises `NotFoundError` — but when the number happens to exist as a
 file id too, it silently downloads the wrong document. Always go through
 the matching method.
+
+```python
+from pathlib import Path
+
+# Meeting-level documents (agenda PDF, packet, minutes)
+for file in event.published_files:
+    client.download_file(file.file_id, Path(f"{file.file_id}.pdf"))
+    text = client.get_file_text(file.file_id)  # best-effort, may be None
+
+# Agenda-item attachments, from an agenda you fetched above
+for item in agenda.walk_items():
+    for attachment in item.attachments:
+        client.download_attachment(attachment, Path(attachment.file_name or "file.pdf"))
+```
+
+Naming a file `.pdf` up front is a guess; the next section shows how to read the
+real type from the response before you name it.
 
 Practical limits inherited from the API:
 
