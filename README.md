@@ -25,45 +25,99 @@ Requires Python 3.11+. The only runtime dependency is
 ## Quickstart
 
 The tenant name is the subdomain of a municipality's CivicClerk portal —
-the `exampletown` in `exampletown.portal.civicclerk.com`.
+the `exampletown` in `exampletown.portal.civicclerk.com`. Open a client as a
+context manager and list the next month of meetings:
 
 ```python
 import datetime as dt
-from pathlib import Path
 
 from libmuni.civicclerk import CivicClerkClient
 
 with CivicClerkClient("exampletown") as client:
-    # Boards and committees
-    for category in client.get_event_categories():
-        print(category.id, category.name)
-
-    # This month's meetings for one board
-    events = list(
-        client.iter_events(
-            category_id=12,
-            from_date=dt.date.today(),
-            to_date=dt.date.today() + dt.timedelta(days=31),
-        )
-    )
-    for event in events:
+    for event in client.iter_events(
+        from_date=dt.date.today(),
+        to_date=dt.date.today() + dt.timedelta(days=30),
+    ):
         print(event.starts_at, event.name)
-        print("  attend:", event.location, event.virtual_meeting_url)
-        print("  recording:", event.recording_url)
-
-    # The structured agenda of the next meeting that has one
-    event = next(e for e in events if e.agenda_id)
-    agenda = client.get_agenda(event.agenda_id)
-    for item in agenda.walk_items():
-        print(("  " if item.is_section else "    ") + (item.name or ""))
-        for attachment in item.attachments:
-            client.download_attachment(attachment, Path(attachment.file_name or "file.pdf"))
-
-    # Meeting-level documents (agenda PDF, packet, minutes)
-    for file in event.published_files:
-        client.download_file(file.file_id, Path(f"{file.file_id}.pdf"))
-        text = client.get_file_text(file.file_id)  # best-effort, may be None
 ```
+
+`iter_events` is lazy and pages for you, 15 events at a time. **With no date
+range it walks the tenant's entire meeting history** — potentially thousands of
+events and hundreds of requests — so pass `from_date`/`to_date` for anything
+interactive. Wrap the call in `list(...)` when you want every match up front.
+
+The recipes below each pick up one goal. They all run inside the `with` block
+above, so they share the `client` and the datetime import.
+
+### Focus on one board
+
+Meetings span every board and committee. List the categories to find the id you
+want, then filter to it:
+
+```python
+for category in client.get_event_categories():
+    print(category.id, category.name)
+
+council = list(
+    client.iter_events(
+        category_id=12,  # a category id from the listing above
+        from_date=dt.date.today(),
+        to_date=dt.date.today() + dt.timedelta(days=30),
+    )
+)
+```
+
+### See how to attend or watch
+
+Each `Event` carries the join link for upcoming meetings and a recording URL
+once one is published — both `None` when the portal has neither:
+
+```python
+for event in council:
+    print(event.starts_at, event.name)
+    if event.virtual_meeting_url:
+        print("  join:", event.virtual_meeting_url)
+    if event.recording_url:  # YouTube if uploaded, else the direct stream
+        print("  watch:", event.recording_url)
+```
+
+### Read a meeting's agenda
+
+`Event.agenda_id` is `None` until an agenda is published. Fetch it and flatten
+the section/item tree with `walk_items`:
+
+```python
+event = next(e for e in council if e.agenda_id)
+agenda = client.get_agenda(event.agenda_id)
+for item in agenda.walk_items():
+    indent = "  " if item.is_section else "    "
+    print(indent + (item.name or ""))
+```
+
+### Download documents
+
+Two document namespaces, one method each — meeting-level files
+(`download_file`) and agenda-item attachments (`download_attachment`). They are
+not interchangeable; see the trap in the [cheat
+sheet](https://chapinb.com/libmuni/latest/cheatsheet/#two-traps).
+
+```python
+from pathlib import Path
+
+# Meeting-level documents (agenda PDF, packet, minutes)
+for file in event.published_files:
+    client.download_file(file.file_id, Path(f"{file.file_id}.pdf"))
+    text = client.get_file_text(file.file_id)  # best-effort, may be None
+
+# Agenda-item attachments
+for item in agenda.walk_items():
+    for attachment in item.attachments:
+        client.download_attachment(attachment, Path(attachment.file_name or "file.pdf"))
+```
+
+Naming a file `.pdf` before you download it is a guess. To learn the real type
+from the response first, stream it with `open_file` / `open_attachment` — see
+the [usage guide](https://chapinb.com/libmuni/latest/usage/#naming-a-file-you-have-not-downloaded-yet).
 
 Every model keeps the raw API object in `.raw`, so fields the library
 doesn't model yet are still reachable.
